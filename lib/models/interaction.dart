@@ -47,7 +47,9 @@ class Interaction {
       timestamp: data['timestamp'] != null
           ? (data['timestamp'] as dynamic).toDate() as DateTime
           : DateTime.now(),
-      fromUserName: data['fromUserName'] as String? ?? 'Unknown',
+      fromUserName: (data['fromName'] as String?)?.isNotEmpty == true
+          ? data['fromName'] as String
+          : (data['fromUserName'] as String? ?? 'Unknown'),
     );
   }
 

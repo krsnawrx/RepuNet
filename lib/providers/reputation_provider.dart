@@ -185,6 +185,13 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final targetDoc = await tx.get(targetUserRef);
       if (!targetDoc.exists) throw Exception("Target user not found.");
 
+      // Fetch rater's display name from their Firestore user document
+      final raterDoc = await tx.get(raterUserRef);
+      final raterData = raterDoc.data() ?? {};
+      final raterName = (raterData['name'] as String?)?.isNotEmpty == true
+          ? raterData['name'] as String
+          : (realFromName.isNotEmpty ? realFromName : 'Student');
+
       final d = targetDoc.data()!;
       final oldRep = (d['reputation'] as num?)?.toDouble() ?? 0.0;
 
@@ -192,10 +199,12 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       tx.set(ratingDocRef, {
         'fromUser': realFromUid,
         'toUser': toUser,
+        'toId': toUser,
         'rating': rating,
         'comment': comment,
         'timestamp': FieldValue.serverTimestamp(),
-        'fromUserName': realFromName,
+        'fromUserName': raterName,
+        'fromName': raterName,
       });
 
       // 2. Update target user stats
