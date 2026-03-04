@@ -188,9 +188,9 @@ class _RatingsStreamFeed extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('ratings')
-          .where('toUser', isEqualTo: uid)
+          .where('toId', isEqualTo: uid)
           .orderBy('timestamp', descending: true)
-          .limit(3)
+          .limit(5)
           .snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {

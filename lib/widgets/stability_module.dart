@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../providers/reputation_provider.dart';
@@ -184,12 +186,37 @@ class StabilityModule extends StatelessWidget {
                       size: 22,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '${rep.recentInteractions.length}',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final uid = FirebaseAuth.instance.currentUser?.uid;
+                        if (uid == null) {
+                          return Text(
+                            '0',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          );
+                        }
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('ratings')
+                              .where('toId', isEqualTo: uid)
+                              .orderBy('timestamp', descending: true)
+                              .limit(5)
+                              .snapshots(),
+                          builder: (context, snap) {
+                            final count = snap.data?.docs.length ?? 0;
+                            return Text(
+                              '$count',
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     Text(
                       'Recent Ratings',
