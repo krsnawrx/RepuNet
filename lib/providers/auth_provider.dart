@@ -104,7 +104,7 @@ class AuthService {
       'reputation': 0.0,
       'teacher_score': 0.0,
       'peer_score': 0.0,
-      'credibility': 0.40,
+      'credibility': 0.10,
       'totalRatingsReceived': 0,
       'totalRatingsGiven': 0,
       'createdAt': FieldValue.serverTimestamp(),
@@ -140,6 +140,47 @@ class AuthService {
   /// Signs out the current user from Firebase Auth.
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  /// Permanently deletes the current user's account and all related data.
+  ///
+  /// 1. Batch-deletes all ratings where fromUser == uid
+  /// 2. Batch-deletes all ratings where toUser == uid
+  /// 3. Deletes the user document from users collection
+  /// 4. Deletes the Firebase Auth account
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No user signed in.');
+    final uid = user.uid;
+
+    // Helper: batch-delete all docs matching a query
+    Future<void> batchDeleteQuery(Query query) async {
+      QuerySnapshot snap = await query.get();
+      while (snap.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (final doc in snap.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+        snap = await query.get();
+      }
+    }
+
+    // 1. Delete all ratings FROM this user
+    await batchDeleteQuery(
+      _firestore.collection('ratings').where('fromUser', isEqualTo: uid),
+    );
+
+    // 2. Delete all ratings TO this user
+    await batchDeleteQuery(
+      _firestore.collection('ratings').where('toUser', isEqualTo: uid),
+    );
+
+    // 3. Delete the user document
+    await _firestore.collection('users').doc(uid).delete();
+
+    // 4. Delete the Firebase Auth account
+    await user.delete();
   }
 
   /// Cleans up resources (none needed for Firebase instances).

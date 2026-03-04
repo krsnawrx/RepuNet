@@ -177,6 +177,38 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     }
 
     final firestore = FirebaseFirestore.instance;
+
+    // ── 3-day cooldown check per fromUser→toUser pair ─────────────────
+    final lastRatingSnap = await firestore
+        .collection('ratings')
+        .where('fromUser', isEqualTo: realFromUid)
+        .where('toUser', isEqualTo: toUser)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+
+    if (lastRatingSnap.docs.isNotEmpty) {
+      final lastDoc = lastRatingSnap.docs.first.data();
+      final lastTimestamp = lastDoc['timestamp'];
+      if (lastTimestamp != null) {
+        final lastDate = (lastTimestamp as dynamic).toDate() as DateTime;
+        final daysSince = DateTime.now().difference(lastDate).inDays;
+        if (daysSince < 3) {
+          // Fetch target user name for the error message
+          final targetDoc = await firestore
+              .collection('users')
+              .doc(toUser)
+              .get();
+          final targetName =
+              (targetDoc.data()?['name'] as String?) ?? 'this user';
+          final daysLeft = 3 - daysSince;
+          throw Exception(
+            'You already rated $targetName recently. You can rate them again in $daysLeft days',
+          );
+        }
+      }
+    }
+
     final targetUserRef = firestore.collection('users').doc(toUser);
     final raterUserRef = firestore.collection('users').doc(realFromUid);
     final ratingDocRef = firestore.collection('ratings').doc();
@@ -185,15 +217,21 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final targetDoc = await tx.get(targetUserRef);
       if (!targetDoc.exists) throw Exception("Target user not found.");
 
-      // Fetch rater's display name from their Firestore user document
+      // Fetch rater's display name and credibility from their Firestore user document
       final raterDoc = await tx.get(raterUserRef);
       final raterData = raterDoc.data() ?? {};
       final raterName = (raterData['name'] as String?)?.isNotEmpty == true
           ? raterData['name'] as String
           : (realFromName.isNotEmpty ? realFromName : 'Student');
+      final raterCredibility =
+          (raterData['credibility'] as num?)?.toDouble() ?? 0.1;
 
       final d = targetDoc.data()!;
       final oldRep = (d['reputation'] as num?)?.toDouble() ?? 0.0;
+
+      // Credibility-weighted rating
+      final ratingValue0to1 = rating / 5.0;
+      final weightedRating = ratingValue0to1 * raterCredibility;
 
       // 1. Write the rating document
       tx.set(ratingDocRef, {
@@ -201,6 +239,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         'toUser': toUser,
         'toId': toUser,
         'rating': rating,
+        'ratingValue': ratingValue0to1,
+        'weightedRating': weightedRating,
+        'raterCredibility': raterCredibility,
         'comment': comment,
         'timestamp': FieldValue.serverTimestamp(),
         'fromUserName': raterName,
@@ -208,10 +249,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       });
 
       // 2. Update target user stats
-      final ratingValue0to1 = rating / 5.0;
       final newRep = oldRep == 0
-          ? ratingValue0to1
-          : (oldRep * 0.7) + (ratingValue0to1 * 0.3);
+          ? weightedRating
+          : (oldRep * 0.7) + (weightedRating * 0.3);
 
       tx.update(targetUserRef, {
         'totalRatingsReceived': FieldValue.increment(1),
@@ -238,14 +278,19 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
     if (ratingsSnap.docs.isEmpty) return;
 
-    final allRatings = ratingsSnap.docs
-        .map((doc) => (doc.data()['rating'] as num?)?.toDouble() ?? 0.0)
-        .toList();
+    // Use weightedRating if available, fall back to raw rating / 5.0
+    final allWeighted = ratingsSnap.docs.map((doc) {
+      final data = doc.data();
+      if (data.containsKey('weightedRating')) {
+        return (data['weightedRating'] as num?)?.toDouble() ?? 0.0;
+      }
+      return ((data['rating'] as num?)?.toDouble() ?? 0.0) / 5.0;
+    }).toList();
 
-    final average = allRatings.reduce((a, b) => a + b) / allRatings.length;
+    final average = allWeighted.reduce((a, b) => a + b) / allWeighted.length;
 
-    // Normalize to 0–1 scale (ratings are 1–5)
-    final peerScore = (average / 5.0).clamp(0.0, 1.0);
+    // weightedRating is already 0–1 scale
+    final peerScore = average.clamp(0.0, 1.0);
 
     // Fetch user doc to get cgpa_score and teacher_score for total calculation
     final userDoc = await firestore.collection('users').doc(userId).get();

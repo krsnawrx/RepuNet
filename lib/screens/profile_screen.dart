@@ -309,6 +309,27 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: AppTheme.spaceSm),
+
+                    // ── Delete Account Button ────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showDeleteAccountDialog(context, ref),
+                        icon: const Icon(Icons.delete_forever_rounded),
+                        label: const Text('Delete Account'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.error,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusMd,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: AppTheme.spaceXl),
                   ]),
                 ),
@@ -422,6 +443,20 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppTheme.navy.withValues(alpha: 0.95),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: _DeleteAccountDialogContent(parentContext: context, ref: ref),
       ),
     );
   }
@@ -846,6 +881,143 @@ class _KeyValue extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Delete Account Dialog Content (StatefulWidget for loading state) ─────
+
+class _DeleteAccountDialogContent extends StatefulWidget {
+  const _DeleteAccountDialogContent({
+    required this.parentContext,
+    required this.ref,
+  });
+  final BuildContext parentContext;
+  final WidgetRef ref;
+
+  @override
+  State<_DeleteAccountDialogContent> createState() =>
+      _DeleteAccountDialogContentState();
+}
+
+class _DeleteAccountDialogContentState
+    extends State<_DeleteAccountDialogContent> {
+  bool _isDeleting = false;
+
+  Future<void> _deleteAccount() async {
+    setState(() => _isDeleting = true);
+    try {
+      widget.ref.read(reputationProvider.notifier).reset();
+      await widget.ref.read(authServiceProvider).deleteAccount();
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close dialog
+      // Auth state change will automatically navigate to LoginScreen
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete account: $e'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spaceLg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.error.withValues(alpha: 0.15),
+            ),
+            child: const Icon(
+              Icons.delete_forever_rounded,
+              color: AppTheme.error,
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spaceMd),
+
+          // Title
+          const Text(
+            'Delete Account?',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spaceSm),
+
+          // Warning message
+          Text(
+            'This will permanently delete your account and all your ratings. '
+            'This cannot be undone.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spaceLg),
+
+          if (_isDeleting)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: CircularProgressIndicator(color: AppTheme.error),
+            )
+          else
+            // Actions
+            Row(
+              children: [
+                // Cancel
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spaceMd),
+
+                // Delete
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _deleteAccount,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.error,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
