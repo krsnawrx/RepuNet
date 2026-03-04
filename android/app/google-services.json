@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "841694596350",
+    "project_id": "repunet-86ae6",
+    "storage_bucket": "repunet-86ae6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841694596350:android:46fe700d9d8d23582529af",
+        "android_client_info": {
+          "package_name": "com.repunet.repunet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc43Bj28tRw6tKM5Sn38qg8PDEqRP6N9Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
