@@ -159,7 +159,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
   // ═════════════════════════════════════════════════════════════════════
   // submitRating — PRD §9 (System Flow: Submit a Rating)
   // ═════════════════════════════════════════════════════════════════════
-  Future<void> submitRating({
+  Future<double> submitRating({
     required String fromUser,
     required String toUser,
     required int rating,
@@ -213,7 +213,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final raterUserRef = firestore.collection('users').doc(realFromUid);
     final ratingDocRef = firestore.collection('ratings').doc();
 
-    await firestore.runTransaction((tx) async {
+    final appliedCredibility = await firestore.runTransaction((tx) async {
       final targetDoc = await tx.get(targetUserRef);
       if (!targetDoc.exists) throw Exception("Target user not found.");
 
@@ -260,10 +260,14 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
       // 3. Update rater stats
       tx.update(raterUserRef, {'totalRatingsGiven': FieldValue.increment(1)});
+
+      return raterCredibility;
     });
 
     // 4. After transaction: recalculate peer score average from all ratings
     await _recalculatePeerScore(toUser);
+
+    return appliedCredibility;
   }
 
   /// Calculates the average of ALL ratings for [userId] and updates

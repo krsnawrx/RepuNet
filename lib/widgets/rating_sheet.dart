@@ -159,7 +159,7 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
 
       // Call the reputation engine's submit logic.
       // This applies the hybrid formula + smoothing in one step.
-      await ref
+      final appliedCredibility = await ref
           .read(reputationProvider.notifier)
           .submitRating(
             fromUser: fromUid,
@@ -176,12 +176,11 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
         // ── Impact Toast (PRD §9) ─────────────────────────────────
         // Shows the rater's credibility so they understand how much
         // influence their rating carried.
-        final credibility = ref.read(reputationProvider).credibility;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               'Rating Applied. Your influence weight of '
-              '${credibility.toStringAsFixed(2)} was used to '
+              '${appliedCredibility.toStringAsFixed(2)} was used to '
               'calculate this impact.',
             ),
             backgroundColor: AppTheme.success,
