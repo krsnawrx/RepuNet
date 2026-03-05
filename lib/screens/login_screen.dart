@@ -58,6 +58,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       if (_isSignUp) {
+        // Validate email format and domain
+        final emailRegex = RegExp(
+          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+        );
+        if (!emailRegex.hasMatch(email)) {
+          _showError('Please enter a valid email address');
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+
+        final allowedDomains = ['.com', '.edu', '.in', '.org', '.net', '.co'];
+        final hasValidDomain = allowedDomains.any(
+          (domain) => email.toLowerCase().endsWith(domain),
+        );
+        if (!hasValidDomain) {
+          _showError('Please enter a valid email address');
+          if (mounted) setState(() => _isLoading = false);
+          return;
+        }
+
         await authService.signUp(email: email, password: password);
       } else {
         await authService.signIn(email: email, password: password);

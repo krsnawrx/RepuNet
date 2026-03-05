@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +44,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       await currentUser?.reload();
       if (FirebaseAuth.instance.currentUser?.emailVerified ?? false) {
         timer.cancel();
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await _ensureUserDocumentExists(user);
+        }
         if (mounted) {
           ref.invalidate(authStateProvider);
         }
@@ -70,6 +75,26 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     });
   }
 
+  Future<void> _ensureUserDocumentExists(User currentUser) async {
+    final firestore = FirebaseFirestore.instance;
+    final docRef = firestore.collection('users').doc(currentUser.uid);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      final email = currentUser.email ?? '';
+      await docRef.set({
+        'name': email.split('@').first,
+        'cgpa_score': 0.0,
+        'reputation': 0.0,
+        'teacher_score': 0.0,
+        'peer_score': 0.0,
+        'credibility': 0.10,
+        'totalRatingsReceived': 0,
+        'totalRatingsGiven': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
   Future<void> _checkVerification() async {
     setState(() => _isLoading = true);
     try {
@@ -81,6 +106,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       final updatedUser = FirebaseAuth.instance.currentUser;
 
       if (updatedUser != null && updatedUser.emailVerified) {
+        await _ensureUserDocumentExists(updatedUser);
         // 3. User clicked the link! Force the Riverpod stream to refresh.
         // This wakes up the AuthGate in main.dart to navigate to AppShell.
         ref.invalidate(authStateProvider);

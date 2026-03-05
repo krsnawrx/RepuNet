@@ -97,19 +97,6 @@ class AuthService {
     );
     final user = cred.user!;
 
-    // Create initial user document per PRD Section 5
-    await _firestore.collection('users').doc(user.uid).set({
-      'name': email.split('@').first,
-      'cgpa_score': 0.0,
-      'reputation': 0.0,
-      'teacher_score': 0.0,
-      'peer_score': 0.0,
-      'credibility': 0.10,
-      'totalRatingsReceived': 0,
-      'totalRatingsGiven': 0,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
     // Send verification email
     await user.sendEmailVerification();
 
