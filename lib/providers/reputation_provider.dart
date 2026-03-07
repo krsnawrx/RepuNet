@@ -274,16 +274,13 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
   // submitTeacherRating
   // ═════════════════════════════════════════════════════════════════════
   Future<void> submitTeacherRating({
-    required String fromUser,
     required String toUser,
     required int rating,
     String comment = '',
   }) async {
-    final authUser = FirebaseAuth.instance.currentUser;
-    if (authUser == null) throw Exception("You must be logged in to rate.");
-
-    final realFromUid = authUser.uid;
-    final realFromName = authUser.displayName ?? 'Teacher';
+    final realFromUid = FirebaseAuth.instance.currentUser!.uid;
+    final realFromName =
+        FirebaseAuth.instance.currentUser!.displayName ?? 'Teacher';
 
     if (realFromUid == toUser) {
       throw Exception("You cannot rate yourself.");

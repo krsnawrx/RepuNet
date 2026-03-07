@@ -474,15 +474,9 @@ class StudentProfileScreen extends ConsumerWidget {
                         : () async {
                             setState(() => isSubmitting = true);
                             try {
-                              final currentUser =
-                                  FirebaseAuth.instance.currentUser;
-                              if (currentUser == null)
-                                throw Exception('Not logged in.');
-
                               await ref
                                   .read(reputationProvider.notifier)
                                   .submitTeacherRating(
-                                    fromUser: currentUser.uid,
                                     toUser: targetUid,
                                     rating: rating,
                                     comment: commentController.text.trim(),
