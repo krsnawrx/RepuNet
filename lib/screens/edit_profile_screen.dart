@@ -401,9 +401,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
+          hint: Text(hint, style: const TextStyle(color: Colors.white54)),
           icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
           dropdownColor: const Color(0xFF0D1117),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: const TextStyle(color: Colors.white),
           items: items.map((item) {
             final display = itemToString != null ? itemToString(item) : item;
             return DropdownMenuItem<String>(
@@ -413,8 +414,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           }).toList(),
           onChanged: items.isEmpty ? null : onChanged,
           decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: Colors.black.withValues(alpha: 0.2),
             border: OutlineInputBorder(
