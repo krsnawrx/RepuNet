@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/interaction.dart';
@@ -108,107 +109,175 @@ class _RaterTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isTeacher = interaction.type == 'teacher';
 
-    return GlassmorphicCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spaceMd,
-        vertical: 14,
-      ),
-      fillOpacity: 0.08,
-      borderOpacity: 0.12,
-      margin: const EdgeInsets.only(bottom: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return FutureBuilder<DocumentSnapshot?>(
+      future:
+          (interaction.fromUserName.isEmpty ||
+              interaction.fromUserName == 'Unknown')
+          ? FirebaseFirestore.instance
+                .collection('users')
+                .doc(interaction.fromUser)
+                .get()
+          : Future<DocumentSnapshot?>.value(null),
+      builder: (context, snapshot) {
+        String displayName = interaction.fromUserName;
+        if (snapshot.hasData &&
+            snapshot.data != null &&
+            snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data != null && data['name'] != null) {
+            displayName = data['name'] as String;
+          }
+        }
+        if (displayName.isEmpty || displayName == 'Unknown') {
+          displayName = 'User';
+        }
+
+        final accentColor = isTeacher ? Colors.purpleAccent : AppTheme.accent;
+        final cardFillOpacity = isTeacher ? 0.15 : 0.08;
+        final cardBorderOpacity = isTeacher ? 0.3 : 0.12;
+
+        return GlassmorphicCard(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spaceMd,
+            vertical: 14,
+          ),
+          fillOpacity: cardFillOpacity,
+          borderOpacity: cardBorderOpacity,
+          margin: const EdgeInsets.only(bottom: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Avatar ──────────────────────────────────────────────
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.accent.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: AppTheme.accent.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    _initials(interaction.fromUserName),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppTheme.spaceMd),
-
-              // ── Name + timestamp ──────────────────────────────────
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      interaction.fromUserName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      _timeAgo(interaction.timestamp),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white38,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Stars ─────────────────────────────────────────────
               Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(5, (i) {
-                  return Icon(
-                    i < interaction.rating
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    color: i < interaction.rating
-                        ? AppTheme.warning
-                        : Colors.white24,
-                    size: 18,
-                  );
-                }),
+                children: [
+                  // ── Avatar ──────────────────────────────────────────────
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accentColor.withValues(alpha: 0.15),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _initials(displayName),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: accentColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceMd),
+
+                  // ── Name + timestamp ──────────────────────────────────
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                displayName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isTeacher) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.purpleAccent.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.purpleAccent.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Teacher',
+                                  style: TextStyle(
+                                    color: Colors.purpleAccent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        Text(
+                          _timeAgo(interaction.timestamp),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white38,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Stars ─────────────────────────────────────────────
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (i) {
+                      return Icon(
+                        i < interaction.rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: i < interaction.rating
+                            ? AppTheme.warning
+                            : Colors.white24,
+                        size: 18,
+                      );
+                    }),
+                  ),
+                ],
               ),
+
+              // ── Comment (if present) ──────────────────────────────────
+              if (interaction.comment.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '"${interaction.comment}"',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white60,
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-
-          // ── Comment (if present) ──────────────────────────────────
-          if (interaction.comment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '"${interaction.comment}"',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white60,
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 

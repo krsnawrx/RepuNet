@@ -26,6 +26,9 @@ class Interaction {
   /// Display-only field — the rater's name (resolved client-side).
   final String fromUserName;
 
+  /// Type of rating (e.g. 'peer' or 'teacher')
+  final String type;
+
   const Interaction({
     required this.interactionId,
     required this.fromUser,
@@ -34,6 +37,7 @@ class Interaction {
     this.comment = '',
     required this.timestamp,
     this.fromUserName = 'Unknown',
+    this.type = 'peer',
   });
 
   /// Factory to create an [Interaction] from a Firestore document map.
@@ -50,6 +54,7 @@ class Interaction {
       fromUserName: (data['fromName'] as String?)?.isNotEmpty == true
           ? data['fromName'] as String
           : (data['fromUserName'] as String? ?? 'Unknown'),
+      type: data['type'] as String? ?? 'peer',
     );
   }
 
@@ -62,6 +67,7 @@ class Interaction {
       'comment': comment,
       'timestamp': timestamp,
       'fromUserName': fromUserName,
+      'type': type,
     };
   }
 }
