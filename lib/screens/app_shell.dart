@@ -270,13 +270,14 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
 
                     final docs = snapshot.data?.docs ?? [];
 
-                    // Self-filter + search query filter
+                    // Self-filter + search query filter + hide teachers
                     final filtered = docs.where((doc) {
                       if (doc.id == currentUid) return false;
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (data['role'] == 'teacher') return false;
+
                       if (_query.isEmpty) return true;
-                      final username =
-                          (doc.data() as Map<String, dynamic>)['username'] ??
-                          '';
+                      final username = data['username'] ?? '';
                       return username.toString().toLowerCase().contains(
                         _query.toLowerCase(),
                       );

@@ -1,17 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/reputation_provider.dart';
 import '../theme/app_theme.dart';
 
-class StudentProfileScreen extends StatelessWidget {
+class StudentProfileScreen extends ConsumerWidget {
   final String uid;
 
   const StudentProfileScreen({super.key, required this.uid});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student Profile'),
@@ -87,223 +90,288 @@ class StudentProfileScreen extends StatelessWidget {
               final theme = Theme.of(context);
               final repColor = AppTheme.reputationColor(totalScore);
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spaceLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Avatar
-                    Hero(
-                      tag: 'avatar_$uid',
-                      child: Container(
-                        width: 96,
-                        height: 96,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.accent.withValues(alpha: 0.2),
-                          border: Border.all(
-                            color: AppTheme.accent,
-                            width: 2.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _initials(name),
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+              final currentUser = FirebaseAuth.instance.currentUser;
+
+              return FutureBuilder<DocumentSnapshot?>(
+                future: currentUser != null
+                    ? FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(currentUser.uid)
+                          .get()
+                    : Future<DocumentSnapshot?>.value(null),
+                builder: (context, currentSnap) {
+                  final isTeacher =
+                      currentSnap.hasData &&
+                      currentSnap.data != null &&
+                      currentSnap.data!.exists &&
+                      (currentSnap.data!.data()
+                              as Map<String, dynamic>)['role'] ==
+                          'teacher';
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppTheme.spaceLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Avatar
+                        Hero(
+                          tag: 'avatar_$uid',
+                          child: Container(
+                            width: 96,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.accent.withValues(alpha: 0.2),
+                              border: Border.all(
+                                color: AppTheme.accent,
+                                width: 2.5,
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spaceMd),
-                    Text(
-                      name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (username.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '@$username',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
-                    if (course.isNotEmpty ||
-                        branch.isNotEmpty ||
-                        year.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        [
-                          displayCourse,
-                          displayBranch,
-                          if (displayYear != 'Not specified')
-                            'Year $displayYear'
-                          else
-                            displayYear,
-                        ].join(' • '),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: AppTheme.spaceLg),
-
-                    // Reputation Card
-                    Card(
-                      color: AppTheme.navy,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTheme.spaceLg),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 64,
-                              height: 64,
-                              child: CustomPaint(
-                                painter: _GaugePainter(
-                                  value: totalScore,
-                                  color: repColor,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    totalScore.toStringAsFixed(2),
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          color: repColor,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                  ),
+                            child: Center(
+                              child: Text(
+                                _initials(name),
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: AppTheme.spaceLg),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Overall Reputation',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(color: Colors.white),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spaceMd),
+                        Text(
+                          name,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (username.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '@$username',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                        if (course.isNotEmpty ||
+                            branch.isNotEmpty ||
+                            year.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            [
+                              displayCourse,
+                              displayBranch,
+                              if (displayYear != 'Not specified')
+                                'Year $displayYear'
+                              else
+                                displayYear,
+                            ].join(' • '),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: AppTheme.spaceLg),
+
+                        // Reputation Card
+                        Card(
+                          color: AppTheme.navy,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusLg,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppTheme.spaceLg),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 64,
+                                  height: 64,
+                                  child: CustomPaint(
+                                    painter: _GaugePainter(
+                                      value: totalScore,
+                                      color: repColor,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: repColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(
-                                        AppTheme.radiusSm,
+                                    child: Center(
+                                      child: Text(
+                                        totalScore.toStringAsFixed(2),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              color: repColor,
+                                              fontWeight: FontWeight.w800,
+                                            ),
                                       ),
                                     ),
-                                    child: Text(
-                                      _tierLabel(totalScore),
-                                      style: theme.textTheme.labelLarge
-                                          ?.copyWith(
-                                            color: repColor,
-                                            fontSize: 12,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: AppTheme.spaceLg),
-
-                    // Bio
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'About',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        displayBio,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: bio.isEmpty ? Colors.white38 : Colors.white70,
-                          fontStyle: bio.isEmpty
-                              ? FontStyle.italic
-                              : FontStyle.normal,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spaceLg),
-
-                    // Skills
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Skills',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (skills.isEmpty)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'No skills added',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white38,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      )
-                    else
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: skills
-                              .map(
-                                (skill) => Chip(
-                                  label: Text(
-                                    skill.trim(),
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  backgroundColor: AppTheme.accent.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  side: BorderSide.none,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppTheme.radiusSm,
-                                    ),
                                   ),
                                 ),
-                              )
-                              .toList(),
+                                const SizedBox(width: AppTheme.spaceLg),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Overall Reputation',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: repColor.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusSm,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _tierLabel(totalScore),
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                                color: repColor,
+                                                fontSize: 12,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: AppTheme.spaceLg),
-                  ],
-                ),
+
+                        const SizedBox(height: AppTheme.spaceLg),
+
+                        // Bio
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'About',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            displayBio,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: bio.isEmpty
+                                  ? Colors.white38
+                                  : Colors.white70,
+                              fontStyle: bio.isEmpty
+                                  ? FontStyle.italic
+                                  : FontStyle.normal,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spaceLg),
+
+                        // Skills
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Skills',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        if (skills.isEmpty)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'No skills added',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white38,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          )
+                        else
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: skills
+                                  .map(
+                                    (skill) => Chip(
+                                      label: Text(
+                                        skill.trim(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      backgroundColor: AppTheme.accent
+                                          .withValues(alpha: 0.2),
+                                      side: BorderSide.none,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusSm,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+
+                        if (isTeacher) ...[
+                          const SizedBox(height: AppTheme.spaceLg),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showTeacherRatingDialog(
+                                context,
+                                ref,
+                                uid,
+                                name,
+                              ),
+                              icon: const Icon(
+                                Icons.star_rounded,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Rate Student',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusMd,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: AppTheme.spaceLg),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -323,6 +391,161 @@ class StudentProfileScreen extends StatelessWidget {
     if (s >= 0.75) return 'High Standing';
     if (s >= 0.40) return 'Moderate';
     return 'Needs Improvement';
+  }
+
+  void _showTeacherRatingDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String targetUid,
+    String targetName,
+  ) {
+    int rating = 3;
+    final commentController = TextEditingController();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return Container(
+            margin: EdgeInsets.only(bottom: bottomInset),
+            padding: const EdgeInsets.all(AppTheme.spaceLg),
+            decoration: BoxDecoration(
+              color: AppTheme.navy,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Assess $targetName',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceLg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(5, (index) {
+                    final val = index + 1;
+                    return IconButton(
+                      icon: Icon(
+                        val <= rating
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: AppTheme.accent,
+                        size: 32,
+                      ),
+                      onPressed: () => setState(() => rating = val),
+                    );
+                  }),
+                ),
+                const SizedBox(height: AppTheme.spaceMd),
+                TextField(
+                  controller: commentController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Add an optional comment...',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: AppTheme.spaceLg),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            setState(() => isSubmitting = true);
+                            try {
+                              final currentUser =
+                                  FirebaseAuth.instance.currentUser;
+                              if (currentUser == null)
+                                throw Exception('Not logged in.');
+
+                              await ref
+                                  .read(reputationProvider.notifier)
+                                  .submitTeacherRating(
+                                    fromUser: currentUser.uid,
+                                    toUser: targetUid,
+                                    rating: rating,
+                                    comment: commentController.text.trim(),
+                                  );
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Teacher assessment submitted successfully.',
+                                    ),
+                                    backgroundColor: AppTheme.success,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      e.toString().replaceAll(
+                                        'Exception: ',
+                                        '',
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    backgroundColor: AppTheme.error,
+                                  ),
+                                );
+                              }
+                              setState(() => isSubmitting = false);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Submit Teacher Rating',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

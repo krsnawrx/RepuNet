@@ -264,10 +264,132 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       return raterCredibility;
     });
 
-    // 4. After transaction: recalculate peer score average from all ratings
+    // 4. After transaction: recalculate peer score average from PEER ratings
     await _recalculatePeerScore(toUser);
 
     return appliedCredibility;
+  }
+
+  // ═════════════════════════════════════════════════════════════════════
+  // submitTeacherRating
+  // ═════════════════════════════════════════════════════════════════════
+  Future<void> submitTeacherRating({
+    required String fromUser,
+    required String toUser,
+    required int rating,
+    String comment = '',
+  }) async {
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser == null) throw Exception("You must be logged in to rate.");
+
+    final realFromUid = authUser.uid;
+    final realFromName = authUser.displayName ?? 'Teacher';
+
+    if (realFromUid == toUser) {
+      throw Exception("You cannot rate yourself.");
+    }
+
+    final firestore = FirebaseFirestore.instance;
+
+    // ── 7-day cooldown check for teacher ratings ────────────────────────
+    final lastRatingSnap = await firestore
+        .collection('ratings')
+        .where('fromUser', isEqualTo: realFromUid)
+        .where('toUser', isEqualTo: toUser)
+        .where('type', isEqualTo: 'teacher')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+
+    if (lastRatingSnap.docs.isNotEmpty) {
+      final lastDoc = lastRatingSnap.docs.first.data();
+      final lastTimestamp = lastDoc['timestamp'];
+      if (lastTimestamp != null) {
+        final lastDate = (lastTimestamp as dynamic).toDate() as DateTime;
+        final daysSince = DateTime.now().difference(lastDate).inDays;
+        if (daysSince < 7) {
+          final targetDoc = await firestore
+              .collection('users')
+              .doc(toUser)
+              .get();
+          final targetName =
+              (targetDoc.data()?['name'] as String?) ?? 'this student';
+          final daysLeft = 7 - daysSince;
+          throw Exception(
+            'You already submitted an assessment for $targetName recently. You can rate them again in $daysLeft days',
+          );
+        }
+      }
+    }
+
+    final ratingDocRef = firestore.collection('ratings').doc();
+
+    final ratingValue0to1 = rating / 5.0;
+
+    // 1. Write the rating document as type 'teacher'
+    await ratingDocRef.set({
+      'fromUser': realFromUid,
+      'toUser': toUser,
+      'toId': toUser,
+      'rating': rating,
+      'ratingValue': ratingValue0to1,
+      'type': 'teacher',
+      'comment': comment,
+      'timestamp': FieldValue.serverTimestamp(),
+      'fromUserName': realFromName,
+      'fromName': realFromName,
+    });
+
+    // 2. Recalculate teacher score
+    await _recalculateTeacherScore(toUser);
+  }
+
+  /// Calculates the average of ALL TEACHER ratings for [userId] and updates
+  /// `teacher_score` and `reputation` (total score) on their user document.
+  Future<void> _recalculateTeacherScore(String userId) async {
+    final firestore = FirebaseFirestore.instance;
+
+    final ratingsSnap = await firestore
+        .collection('ratings')
+        .where('toUser', isEqualTo: userId)
+        .where('type', isEqualTo: 'teacher')
+        .get();
+
+    if (ratingsSnap.docs.isEmpty) return;
+
+    final allRatings = ratingsSnap.docs.map((doc) {
+      final data = doc.data();
+      return ((data['rating'] as num?)?.toDouble() ?? 0.0) / 5.0;
+    }).toList();
+
+    final average = allRatings.reduce((a, b) => a + b) / allRatings.length;
+    final teacherScore = average.clamp(0.0, 1.0);
+
+    final userDoc = await firestore.collection('users').doc(userId).get();
+    final userData = userDoc.data() ?? {};
+
+    double parseDouble(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
+
+    final normalizedCGPA = parseDouble(userData['cgpa_score']) / 10.0;
+    final peerScore = parseDouble(userData['peer_score']);
+
+    // Total Score: (peer_score * 0.5) + (cgpa_score * 0.3) + (teacher_score * 0.2)
+    final totalReputation =
+        (peerScore * 0.5) + (normalizedCGPA * 0.3) + (teacherScore * 0.2);
+
+    // Credibility: 0.6×cgpa + 0.4×totalRep
+    final credibility = ((0.6 * normalizedCGPA) + (0.4 * totalReputation))
+        .clamp(0.0, 1.0);
+
+    await firestore.collection('users').doc(userId).update({
+      'teacher_score': teacherScore,
+      'reputation': totalReputation,
+      'credibility': credibility,
+    });
   }
 
   /// Calculates the average of ALL ratings for [userId] and updates
@@ -278,6 +400,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final ratingsSnap = await firestore
         .collection('ratings')
         .where('toUser', isEqualTo: userId)
+        .where('type', isNotEqualTo: 'teacher')
         .get();
 
     if (ratingsSnap.docs.isEmpty) return;

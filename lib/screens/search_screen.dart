@@ -158,14 +158,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                     final docs = snapshot.data?.docs ?? [];
 
-                    // Self-filter: exclude logged-in user
-                    // Query filter: case-insensitive name match
+                    // Self-filter: exclude logged-in user and teachers
+                    // Query filter: case-insensitive username match
                     final filtered = docs.where((doc) {
                       if (doc.id == currentUid) return false;
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (data['role'] == 'teacher') return false;
+
                       if (_query.isEmpty) return true;
-                      final username =
-                          (doc.data() as Map<String, dynamic>)['username'] ??
-                          '';
+                      final username = data['username'] ?? '';
                       return username.toString().toLowerCase().contains(
                         _query.toLowerCase(),
                       );

@@ -36,6 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isSignUp = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _isTeacherLogin = false;
 
   @override
   void dispose() {
@@ -45,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim();
+    String email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
@@ -306,7 +307,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       color: Colors.white54,
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spaceXl),
+                  const SizedBox(height: AppTheme.spaceMd),
+
+                  // ── Student / Teacher Toggle ─────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Student Login'),
+                        selected: !_isTeacherLogin,
+                        onSelected: (val) {
+                          if (val) setState(() => _isTeacherLogin = false);
+                        },
+                        selectedColor: AppTheme.accent,
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        labelStyle: TextStyle(
+                          color: !_isTeacherLogin
+                              ? Colors.white
+                              : Colors.white70,
+                          fontWeight: !_isTeacherLogin
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        side: BorderSide.none,
+                      ),
+                      const SizedBox(width: AppTheme.spaceMd),
+                      ChoiceChip(
+                        label: const Text('Teacher Login'),
+                        selected: _isTeacherLogin,
+                        onSelected: (val) {
+                          if (val) setState(() => _isTeacherLogin = true);
+                        },
+                        selectedColor: AppTheme.accent,
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        labelStyle: TextStyle(
+                          color: _isTeacherLogin
+                              ? Colors.white
+                              : Colors.white70,
+                          fontWeight: _isTeacherLogin
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        side: BorderSide.none,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spaceLg),
 
                   // ── Login Card (Glassmorphic) ────────────────────────
                   GlassmorphicCard(
