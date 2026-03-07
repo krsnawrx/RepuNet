@@ -61,6 +61,7 @@ class StudentProfileScreen extends StatelessWidget {
               }
 
               final name = (data['name'] as String?) ?? 'Student';
+              final username = (data['username'] as String?) ?? '';
               final cgpa = parseDouble(data['cgpa_score']);
               final peerScore = parseDouble(data['peer_score']);
               final teacherScore = parseDouble(data['teacher_score']);
@@ -124,6 +125,15 @@ class StudentProfileScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    if (username.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '@$username',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ],
                     if (course.isNotEmpty ||
                         branch.isNotEmpty ||
                         year.isNotEmpty) ...[

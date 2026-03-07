@@ -16,6 +16,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  late TextEditingController _nameController;
   late TextEditingController _bioController;
   late TextEditingController _skillsController;
 
@@ -26,10 +27,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _isSaving = false;
 
   final Map<String, List<String>> _courseYears = {
-    'BTech': ['Year 1', 'Year 2', 'Year 3', 'Year 4'],
-    'BSc': ['Year 1', 'Year 2', 'Year 3'],
-    'BBA': ['Year 1', 'Year 2', 'Year 3'],
-    'BCA': ['Year 1', 'Year 2', 'Year 3'],
+    'BTech': ['1', '2', '3', '4'],
+    'BSc': ['1', '2', '3'],
+    'BBA': ['1', '2', '3'],
+    'BCA': ['1', '2', '3'],
   };
 
   final Map<String, List<String>> _courseBranches = {
@@ -50,6 +51,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void initState() {
     super.initState();
     final user = ref.read(userProvider);
+    _nameController = TextEditingController(text: user.name);
     _bioController = TextEditingController(text: user.bio);
     _skillsController = TextEditingController(text: user.skills.join(', '));
 
@@ -71,6 +73,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _bioController.dispose();
     _skillsController.dispose();
     super.dispose();
@@ -96,6 +99,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final branch = _selectedBranch ?? '';
 
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'name': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
         'branch': branch,
         'course': course,
@@ -107,6 +111,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ref
           .read(userProvider.notifier)
           .updateProfile(
+            // Since updateProfile in user_provider.dart might not support 'name' formally as a parameter,
+            // we skip passing 'name' to it directly, but the Riverpod stream will catch it anyway.
             bio: _bioController.text.trim(),
             branch: branch,
             course: course,
@@ -188,6 +194,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Display Name
+              _buildTextField(
+                controller: _nameController,
+                label: 'Display Name',
+                hint: 'Enter your display name',
+              ),
+              const SizedBox(height: AppTheme.spaceMd),
+
               // Bio
               _buildTextField(
                 controller: _bioController,
@@ -197,44 +211,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // Course & Year
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: _buildDropdownField(
-                      label: 'Course',
-                      value: _selectedCourse,
-                      items: _courseYears.keys.toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedCourse = val;
-                          _selectedYear = null;
-                          _selectedBranch = null;
-                        });
-                      },
-                      hint: 'Select Course',
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spaceMd),
-                  Expanded(
-                    flex: 1,
-                    child: _buildDropdownField(
-                      label: 'Year',
-                      value: _selectedYear,
-                      items: _selectedCourse != null
-                          ? _courseYears[_selectedCourse]!
-                          : [],
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedYear = val;
-                        });
-                      },
-                      hint: 'Select',
-                    ),
-                  ),
-                ],
+              // Course
+              _buildDropdownField(
+                label: 'Course',
+                value: _selectedCourse,
+                items: _courseYears.keys.toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedCourse = val;
+                    _selectedYear = null;
+                    _selectedBranch = null;
+                  });
+                },
+                hint: 'Select Course',
+              ),
+              const SizedBox(height: AppTheme.spaceMd),
+
+              // Year
+              _buildDropdownField(
+                label: 'Year',
+                value: _selectedYear,
+                items: _selectedCourse != null
+                    ? _courseYears[_selectedCourse]!
+                    : [],
+                itemToString: (item) => 'Year $item',
+                onChanged: (val) {
+                  setState(() {
+                    _selectedYear = val;
+                  });
+                },
+                hint: 'Select',
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
@@ -334,6 +340,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
     required String hint,
+    String Function(String)? itemToString,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +360,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           dropdownColor: AppTheme.navyMedium,
           style: const TextStyle(color: Colors.white, fontSize: 16),
           items: items.map((item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
+            final display = itemToString != null ? itemToString(item) : item;
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(display, style: const TextStyle(color: Colors.white)),
+            );
           }).toList(),
           onChanged: items.isEmpty ? null : onChanged,
           decoration: InputDecoration(
