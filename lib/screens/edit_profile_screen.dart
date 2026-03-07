@@ -100,6 +100,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'name': _nameController.text.trim(),
+        'username': FirebaseAuth.instance.currentUser!.email!.split('@')[0],
         'bio': _bioController.text.trim(),
         'branch': branch,
         'course': course,
@@ -357,7 +358,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         DropdownButtonFormField<String>(
           value: value,
           icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
-          dropdownColor: AppTheme.navyMedium,
+          dropdownColor: const Color(0xFF1A1F2E),
           style: const TextStyle(color: Colors.white, fontSize: 16),
           items: items.map((item) {
             final display = itemToString != null ? itemToString(item) : item;
@@ -369,7 +370,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           onChanged: items.isEmpty ? null : onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white54),
+            hintStyle: const TextStyle(color: Colors.white),
             filled: true,
             fillColor: Colors.black.withValues(alpha: 0.2),
             border: OutlineInputBorder(
