@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Represents the current user's profile data.
@@ -14,6 +15,11 @@ class UserProfile {
   final int totalRatingsGiven;
   final DateTime? memberSince;
   final bool isLoading;
+  final String bio;
+  final String branch;
+  final String course;
+  final String year;
+  final List<String> skills;
 
   const UserProfile({
     this.userId = '',
@@ -25,6 +31,11 @@ class UserProfile {
     this.totalRatingsGiven = 0,
     this.memberSince,
     this.isLoading = false,
+    this.bio = '',
+    this.branch = '',
+    this.course = '',
+    this.year = '',
+    this.skills = const [],
   });
 
   UserProfile copyWith({
@@ -37,6 +48,11 @@ class UserProfile {
     int? totalRatingsGiven,
     DateTime? memberSince,
     bool? isLoading,
+    String? bio,
+    String? branch,
+    String? course,
+    String? year,
+    List<String>? skills,
   }) {
     return UserProfile(
       userId: userId ?? this.userId,
@@ -48,6 +64,11 @@ class UserProfile {
       totalRatingsGiven: totalRatingsGiven ?? this.totalRatingsGiven,
       memberSince: memberSince ?? this.memberSince,
       isLoading: isLoading ?? this.isLoading,
+      bio: bio ?? this.bio,
+      branch: branch ?? this.branch,
+      course: course ?? this.course,
+      year: year ?? this.year,
+      skills: skills ?? this.skills,
     );
   }
 
@@ -94,6 +115,11 @@ class UserNotifier extends StateNotifier<UserProfile> {
               memberSince:
                   (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               isLoading: false,
+              bio: data['bio'] ?? '',
+              branch: data['branch'] ?? '',
+              course: data['course'] ?? '',
+              year: data['year'] ?? '',
+              skills: List<String>.from(data['skills'] ?? []),
             );
           } else {
             // Fallback if doc is initializing
@@ -116,6 +142,36 @@ class UserNotifier extends StateNotifier<UserProfile> {
             );
           }
         });
+  }
+
+  /// Updates the user profile in Firestore
+  Future<void> updateProfile({
+    String? bio,
+    String? branch,
+    String? course,
+    String? year,
+    List<String>? skills,
+  }) async {
+    if (state.userId.isEmpty) return;
+
+    final updates = <String, dynamic>{};
+    if (bio != null) updates['bio'] = bio;
+    if (branch != null) updates['branch'] = branch;
+    if (course != null) updates['course'] = course;
+    if (year != null) updates['year'] = year;
+    if (skills != null) updates['skills'] = skills;
+
+    if (updates.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(state.userId)
+          .update(updates);
+    } catch (e) {
+      debugPrint('Error updating profile: $e');
+      rethrow;
+    }
   }
 
   /// Resets the user profile to defaults (used on sign-out).

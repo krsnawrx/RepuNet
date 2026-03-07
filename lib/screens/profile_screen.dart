@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/reputation_provider.dart';
 import '../theme/app_theme.dart';
+import 'edit_profile_screen.dart';
 
 /// Profile tab — user info, reputation breakdown pie chart, and details.
 class ProfileScreen extends ConsumerWidget {
@@ -74,6 +75,19 @@ class ProfileScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 180,
                 pinned: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded),
+                    tooltip: 'Edit Profile',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: const BoxDecoration(

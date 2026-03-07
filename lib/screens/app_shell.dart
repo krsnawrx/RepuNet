@@ -11,6 +11,7 @@ import '../widgets/glassmorphic_card.dart';
 import '../widgets/rating_sheet.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'student_profile_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AppShell — Two-Tab Navigation Shell
@@ -335,131 +336,149 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                       reputation,
                                     );
 
-                                    return GlassmorphicCard(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppTheme.spaceMd,
-                                        vertical: 14,
-                                      ),
-                                      fillOpacity: 0.08,
-                                      borderOpacity: 0.12,
-                                      margin: const EdgeInsets.only(bottom: 2),
-                                      child: Row(
-                                        children: [
-                                          // Avatar
-                                          Container(
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: AppTheme.accent.withValues(
-                                                alpha: 0.15,
-                                              ),
-                                              border: Border.all(
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                StudentProfileScreen(uid: uid),
+                                          ),
+                                        );
+                                      },
+                                      child: GlassmorphicCard(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppTheme.spaceMd,
+                                          vertical: 14,
+                                        ),
+                                        fillOpacity: 0.08,
+                                        borderOpacity: 0.12,
+                                        margin: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Avatar
+                                            Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
                                                 color: AppTheme.accent
-                                                    .withValues(alpha: 0.3),
+                                                    .withValues(alpha: 0.15),
+                                                border: Border.all(
+                                                  color: AppTheme.accent
+                                                      .withValues(alpha: 0.3),
+                                                ),
                                               ),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                _initials(name),
-                                                style: theme
-                                                    .textTheme
-                                                    .titleMedium
-                                                    ?.copyWith(
-                                                      color: AppTheme.accent,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 14,
-                                                    ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            width: AppTheme.spaceMd,
-                                          ),
-
-                                          // Name + CGPA
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  name,
+                                              child: Center(
+                                                child: Text(
+                                                  _initials(name),
                                                   style: theme
                                                       .textTheme
                                                       .titleMedium
                                                       ?.copyWith(
-                                                        color: Colors.white,
+                                                        color: AppTheme.accent,
+                                                        fontWeight:
+                                                            FontWeight.w700,
                                                         fontSize: 14,
                                                       ),
                                                 ),
-                                                Text(
-                                                  'CGPA ${cgpa.toStringAsFixed(1)}',
-                                                  style: theme
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                        color: Colors.white38,
-                                                        fontSize: 12,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-
-                                          // Reputation badge
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: repColor.withValues(
-                                                alpha: 0.15,
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    AppTheme.radiusSm,
-                                                  ),
                                             ),
-                                            child: Text(
-                                              reputation.toStringAsFixed(2),
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    color: repColor,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 13,
-                                                  ),
+                                            const SizedBox(
+                                              width: AppTheme.spaceMd,
                                             ),
-                                          ),
-                                          const SizedBox(width: 6),
 
-                                          // Rate button
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.star_half_rounded,
-                                              color: AppTheme.warning,
-                                              size: 24,
+                                            // Name + CGPA
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    name,
+                                                    style: theme
+                                                        .textTheme
+                                                        .titleMedium
+                                                        ?.copyWith(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                  ),
+                                                  Text(
+                                                    'CGPA ${cgpa.toStringAsFixed(1)}',
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          color: Colors.white38,
+                                                          fontSize: 12,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                            onPressed: () {
-                                              HapticFeedback.selectionClick();
-                                              Navigator.of(context).pop();
-                                              showRatingSheet(
-                                                context,
-                                                preselectedName: name,
-                                                preselectedUid: uid,
-                                              );
-                                            },
-                                            tooltip: 'Rate $name',
-                                            style: IconButton.styleFrom(
-                                              backgroundColor: AppTheme.warning
-                                                  .withValues(alpha: 0.12),
-                                              padding: const EdgeInsets.all(8),
-                                              minimumSize: const Size(36, 36),
+
+                                            // Reputation badge
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: repColor.withValues(
+                                                  alpha: 0.15,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      AppTheme.radiusSm,
+                                                    ),
+                                              ),
+                                              child: Text(
+                                                reputation.toStringAsFixed(2),
+                                                style: theme
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      color: repColor,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 13,
+                                                    ),
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 6),
+
+                                            // Rate button
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.star_half_rounded,
+                                                color: AppTheme.warning,
+                                                size: 24,
+                                              ),
+                                              onPressed: () {
+                                                HapticFeedback.selectionClick();
+                                                Navigator.of(context).pop();
+                                                showRatingSheet(
+                                                  context,
+                                                  preselectedName: name,
+                                                  preselectedUid: uid,
+                                                );
+                                              },
+                                              tooltip: 'Rate $name',
+                                              style: IconButton.styleFrom(
+                                                backgroundColor: AppTheme
+                                                    .warning
+                                                    .withValues(alpha: 0.12),
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                minimumSize: const Size(36, 36),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     );
                                   },
