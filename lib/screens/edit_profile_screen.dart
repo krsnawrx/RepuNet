@@ -369,7 +369,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           onChanged: items.isEmpty ? null : onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white38),
+            hintStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: Colors.black.withValues(alpha: 0.2),
             border: OutlineInputBorder(

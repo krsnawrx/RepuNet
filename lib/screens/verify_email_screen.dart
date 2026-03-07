@@ -83,6 +83,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       final email = currentUser.email ?? '';
       await docRef.set({
         'name': email.split('@').first,
+        'username': email.split('@').first,
         'cgpa_score': 0.0,
         'reputation': 0.0,
         'teacher_score': 0.0,

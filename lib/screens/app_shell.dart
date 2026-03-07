@@ -204,7 +204,7 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.black.withValues(alpha: 0.3),
-                    hintText: 'Search by name...',
+                    hintText: 'Search by username...',
                     hintStyle: TextStyle(
                       color: Colors.white.withValues(alpha: 0.4),
                       fontSize: 16,
@@ -274,9 +274,10 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                     final filtered = docs.where((doc) {
                       if (doc.id == currentUid) return false;
                       if (_query.isEmpty) return true;
-                      final name =
-                          (doc.data() as Map<String, dynamic>)['name'] ?? '';
-                      return name.toString().toLowerCase().contains(
+                      final username =
+                          (doc.data() as Map<String, dynamic>)['username'] ??
+                          '';
+                      return username.toString().toLowerCase().contains(
                         _query.toLowerCase(),
                       );
                     }).toList();
