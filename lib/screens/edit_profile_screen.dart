@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/user_provider.dart';
 import '../theme/app_theme.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -47,27 +46,62 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     'BCA': ['Computer Applications'],
   };
 
+  bool _isLoadingData = true;
+
   @override
   void initState() {
     super.initState();
-    final user = ref.read(userProvider);
-    _nameController = TextEditingController(text: user.name);
-    _bioController = TextEditingController(text: user.bio);
-    _skillsController = TextEditingController(text: user.skills.join(', '));
+    _nameController = TextEditingController();
+    _bioController = TextEditingController();
+    _skillsController = TextEditingController();
+    _loadUserData();
+  }
 
-    // Initialize dropdowns if they match the predefined options
-    _selectedCourse = _courseYears.containsKey(user.course)
-        ? user.course
-        : null;
+  Future<void> _loadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _isLoadingData = false);
+      return;
+    }
 
-    if (_selectedCourse != null) {
-      final validYears = _courseYears[_selectedCourse]!;
-      _selectedYear = validYears.contains(user.year) ? user.year : null;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _nameController.text = data['name'] ?? '';
+          _bioController.text = data['bio'] ?? '';
 
-      final validBranches = _courseBranches[_selectedCourse]!;
-      _selectedBranch = validBranches.contains(user.branch)
-          ? user.branch
-          : null;
+          final skillsList = data['skills'] as List<dynamic>? ?? [];
+          _skillsController.text = skillsList
+              .map((e) => e.toString())
+              .join(', ');
+
+          final course = data['course'] as String?;
+          if (course != null &&
+              course.isNotEmpty &&
+              _courseYears.containsKey(course)) {
+            _selectedCourse = course;
+
+            final year = data['year'] as String?;
+            if (year != null && _courseYears[course]!.contains(year)) {
+              _selectedYear = year;
+            }
+
+            final branch = data['branch'] as String?;
+            if (branch != null && _courseBranches[course]!.contains(branch)) {
+              _selectedBranch = branch;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore cleanly
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
     }
   }
 
@@ -88,38 +122,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception('User not logged in');
 
-      final skills = _skillsController.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
+      final updates = <String, dynamic>{};
 
-      final course = _selectedCourse ?? '';
-      final year = _selectedYear ?? '';
-      final branch = _selectedBranch ?? '';
+      final name = _nameController.text.trim();
+      if (name.isNotEmpty) updates['name'] = name;
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'name': _nameController.text.trim(),
-        'username': FirebaseAuth.instance.currentUser!.email!.split('@')[0],
-        'bio': _bioController.text.trim(),
-        'branch': branch,
-        'course': course,
-        'year': year,
-        'skills': skills,
-      });
+      final email = FirebaseAuth.instance.currentUser?.email;
+      if (email != null && email.contains('@')) {
+        updates['username'] = email.split('@')[0];
+      }
 
-      // Also update the local Riverpod state
-      ref
-          .read(userProvider.notifier)
-          .updateProfile(
-            // Since updateProfile in user_provider.dart might not support 'name' formally as a parameter,
-            // we skip passing 'name' to it directly, but the Riverpod stream will catch it anyway.
-            bio: _bioController.text.trim(),
-            branch: branch,
-            course: course,
-            year: year,
-            skills: skills,
-          );
+      final bio = _bioController.text.trim();
+      if (bio.isNotEmpty) updates['bio'] = bio;
+
+      if (_selectedCourse != null && _selectedCourse!.isNotEmpty) {
+        updates['course'] = _selectedCourse;
+      }
+      if (_selectedYear != null && _selectedYear!.isNotEmpty) {
+        updates['year'] = _selectedYear;
+      }
+      if (_selectedBranch != null && _selectedBranch!.isNotEmpty) {
+        updates['branch'] = _selectedBranch;
+      }
+
+      final skillsText = _skillsController.text.trim();
+      if (skillsText.isNotEmpty) {
+        updates['skills'] = skillsText
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      if (updates.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .update(updates);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,90 +228,94 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spaceLg),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display Name
-              _buildTextField(
-                controller: _nameController,
-                label: 'Display Name',
-                hint: 'Enter your display name',
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
+      body: _isLoadingData
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.spaceLg),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Display Name
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Display Name',
+                      hint: 'Enter your display name',
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // Bio
-              _buildTextField(
-                controller: _bioController,
-                label: 'Bio',
-                hint: 'Tell us about yourself...',
-                maxLines: 4,
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
+                    // Bio
+                    _buildTextField(
+                      controller: _bioController,
+                      label: 'Bio',
+                      hint: 'Tell us about yourself...',
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // Course
-              _buildDropdownField(
-                label: 'Course',
-                value: _selectedCourse,
-                items: _courseYears.keys.toList(),
-                onChanged: (val) {
-                  setState(() {
-                    _selectedCourse = val;
-                    _selectedYear = null;
-                    _selectedBranch = null;
-                  });
-                },
-                hint: 'Select Course',
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
+                    // Course
+                    _buildDropdownField(
+                      label: 'Course',
+                      value: _selectedCourse,
+                      items: _courseYears.keys.toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCourse = val;
+                          _selectedYear = null;
+                          _selectedBranch = null;
+                        });
+                      },
+                      hint: 'Select Course',
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // Year
-              _buildDropdownField(
-                label: 'Year',
-                value: _selectedYear,
-                items: _selectedCourse != null
-                    ? _courseYears[_selectedCourse]!
-                    : [],
-                itemToString: (item) => 'Year $item',
-                onChanged: (val) {
-                  setState(() {
-                    _selectedYear = val;
-                  });
-                },
-                hint: 'Select',
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
+                    // Year
+                    _buildDropdownField(
+                      label: 'Year',
+                      value: _selectedYear,
+                      items: _selectedCourse != null
+                          ? _courseYears[_selectedCourse]!
+                          : [],
+                      itemToString: (item) => 'Year $item',
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedYear = val;
+                        });
+                      },
+                      hint: 'Select',
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // Branch
-              _buildDropdownField(
-                label: 'Branch / Major',
-                value: _selectedBranch,
-                items: _selectedCourse != null
-                    ? _courseBranches[_selectedCourse]!
-                    : [],
-                onChanged: (val) {
-                  setState(() {
-                    _selectedBranch = val;
-                  });
-                },
-                hint: 'Select Branch',
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
+                    // Branch
+                    _buildDropdownField(
+                      label: 'Branch / Major',
+                      value: _selectedBranch,
+                      items: _selectedCourse != null
+                          ? _courseBranches[_selectedCourse]!
+                          : [],
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedBranch = val;
+                        });
+                      },
+                      hint: 'Select Branch',
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
 
-              // Skills
-              _buildTextField(
-                controller: _skillsController,
-                label: 'Skills',
-                hint: 'Comma separated (e.g. Flutter, Firebase, Python)',
-                maxLines: 2,
+                    // Skills
+                    _buildTextField(
+                      controller: _skillsController,
+                      label: 'Skills',
+                      hint: 'Comma separated (e.g. Flutter, Firebase, Python)',
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -358,7 +402,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         DropdownButtonFormField<String>(
           value: value,
           icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
-          dropdownColor: const Color(0xFF1A1F2E),
+          dropdownColor: const Color(0xFF0D1117),
           style: const TextStyle(color: Colors.white, fontSize: 16),
           items: items.map((item) {
             final display = itemToString != null ? itemToString(item) : item;
@@ -370,7 +414,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           onChanged: items.isEmpty ? null : onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white),
+            hintStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: Colors.black.withValues(alpha: 0.2),
             border: OutlineInputBorder(
