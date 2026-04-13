@@ -399,15 +399,12 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
                                 ],
                               ),
                             ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      StudentProfileScreen(uid: doc.id),
-                                ),
-                              );
-                            },
+                            onTap: () => _showStudentActionSheet(
+                              context,
+                              doc.id,
+                              data['name']?.toString() ?? 'Unknown',
+                              (data['cgpa_score'] as num?)?.toDouble() ?? 0.0,
+                            ),
                           ),
                         ),
                       );
@@ -456,6 +453,382 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
               .toList(),
           onChanged: items.isEmpty ? null : onChanged,
         ),
+      ),
+    );
+  }
+
+  /// Shows an action sheet with 'Rate Student' and 'Update CGPA' options.
+  void _showStudentActionSheet(
+    BuildContext context,
+    String studentUid,
+    String studentName,
+    double currentCgpa,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(AppTheme.spaceLg),
+        decoration: BoxDecoration(
+          color: AppTheme.navy,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              studentName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceLg),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => StudentProfileScreen(uid: studentUid),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.star_rounded, color: Colors.white),
+                label: const Text(
+                  'Rate Student',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceMd),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showUpdateCgpaSheet(
+                    context,
+                    studentUid,
+                    studentName,
+                    currentCgpa,
+                  );
+                },
+                icon: const Icon(Icons.school_rounded, color: Colors.white),
+                label: const Text(
+                  'Update CGPA',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows a bottom sheet for updating a student's CGPA.
+  void _showUpdateCgpaSheet(
+    BuildContext context,
+    String studentUid,
+    String studentName,
+    double currentCgpa,
+  ) {
+    final cgpaController = TextEditingController(
+      text: currentCgpa > 0 ? currentCgpa.toStringAsFixed(2) : '',
+    );
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return Container(
+            margin: EdgeInsets.only(bottom: bottomInset),
+            padding: const EdgeInsets.all(AppTheme.spaceLg),
+            decoration: BoxDecoration(
+              color: AppTheme.navy,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Update CGPA — $studentName',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceLg),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.school_rounded,
+                          color: Colors.white54,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Current CGPA: ${currentCgpa.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  TextFormField(
+                    controller: cgpaController,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (value) {
+                      final parsed = double.tryParse(value?.trim() ?? '');
+                      if (parsed == null || parsed < 0.0 || parsed > 10.0) {
+                        return 'CGPA must be between 0.0 and 10.0';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'New CGPA (0.0 – 10.0)',
+                      labelStyle: const TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF2E7D32),
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppTheme.error,
+                          width: 2,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppTheme.error,
+                          width: 2,
+                        ),
+                      ),
+                      errorStyle: const TextStyle(color: AppTheme.error),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceLg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMd,
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spaceMd),
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: isSaving
+                                ? null
+                                : () async {
+                                    if (!formKey.currentState!.validate()) {
+                                      return;
+                                    }
+
+                                    final parsed = double.parse(
+                                      cgpaController.text.trim(),
+                                    );
+
+                                    setState(() => isSaving = true);
+
+                                    try {
+                                      final firestore =
+                                          FirebaseFirestore.instance;
+                                      final userDoc = await firestore
+                                          .collection('users')
+                                          .doc(studentUid)
+                                          .get();
+                                      final userData = userDoc.data() ?? {};
+                                      final reputation =
+                                          (userData['reputation'] as num?)
+                                                  ?.toDouble() ??
+                                              0.0;
+
+                                      final normalizedCgpa = parsed / 10.0;
+                                      final credibility = ((0.6 *
+                                                  normalizedCgpa) +
+                                              (0.4 * reputation))
+                                          .clamp(0.0, 1.0);
+
+                                      await firestore
+                                          .collection('users')
+                                          .doc(studentUid)
+                                          .update({
+                                            'cgpa_score': parsed,
+                                            'credibility': credibility,
+                                          });
+
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'CGPA updated successfully',
+                                            ),
+                                            backgroundColor: AppTheme.success,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              e
+                                                  .toString()
+                                                  .replaceAll(
+                                                    'Exception: ',
+                                                    '',
+                                                  ),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            backgroundColor: AppTheme.error,
+                                          ),
+                                        );
+                                      }
+                                      setState(() => isSaving = false);
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMd,
+                                ),
+                              ),
+                            ),
+                            child: isSaving
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
