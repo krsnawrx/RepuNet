@@ -316,6 +316,79 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
   }
 
   // ═════════════════════════════════════════════════════════════════════
+  // approveAchievement — Teacher-approved post boost
+  // ═════════════════════════════════════════════════════════════════════
+  //
+  // When a teacher approves an achievement post:
+  //   1. Mark the post as 'approved' in the posts collection
+  //   2. Atomically add +0.02 to the author's peer_score
+  //   3. Recalculate reputation and credibility
+  //
+  // The boost is flat (+0.02) and capped at 1.0 to prevent inflation.
+  // ═════════════════════════════════════════════════════════════════════
+  Future<void> approveAchievement({
+    required String postId,
+    required String authorId,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+    const double approvalBoost = 0.02;
+
+    await firestore.runTransaction((transaction) async {
+      // 1. Read post document
+      final postRef = firestore.collection('posts').doc(postId);
+      final postSnap = await transaction.get(postRef);
+
+      if (!postSnap.exists) {
+        throw Exception('Achievement post not found.');
+      }
+
+      final postData = postSnap.data()!;
+      if (postData['status'] == 'approved') {
+        throw Exception('This post has already been approved.');
+      }
+
+      // 2. Read the author's user document
+      final userRef = firestore.collection('users').doc(authorId);
+      final userSnap = await transaction.get(userRef);
+
+      if (!userSnap.exists) {
+        throw Exception('Author not found.');
+      }
+
+      final userData = userSnap.data()!;
+      final currentPeerScore =
+          (userData['peer_score'] as num?)?.toDouble() ?? 0.0;
+      final cgpa =
+          (userData['cgpa_score'] as num?)?.toDouble() ?? 0.0;
+      final teacherScore =
+          (userData['teacher_score'] as num?)?.toDouble() ?? 0.0;
+
+      // 3. Apply capped boost
+      final newPeerScore =
+          (currentPeerScore + approvalBoost).clamp(0.0, 1.0);
+
+      // 4. Recalculate reputation and credibility
+      final normalizedCgpa = cgpa / 10.0;
+      final totalReputation =
+          (newPeerScore * 0.5) + (normalizedCgpa * 0.3) + (teacherScore * 0.2);
+      final newCredibility =
+          ((0.6 * normalizedCgpa) + (0.4 * totalReputation)).clamp(0.0, 1.0);
+
+      // 5. Write updates atomically
+      transaction.update(postRef, {
+        'status': 'approved',
+        'approvedAt': FieldValue.serverTimestamp(),
+      });
+
+      transaction.update(userRef, {
+        'peer_score': newPeerScore,
+        'reputation': totalReputation,
+        'credibility': newCredibility,
+      });
+    });
+  }
+
+  // ═════════════════════════════════════════════════════════════════════
   // submitTeacherRating
   // ═════════════════════════════════════════════════════════════════════
   Future<void> submitTeacherRating({

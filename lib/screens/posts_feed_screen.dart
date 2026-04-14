@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,13 +24,101 @@ import '../widgets/achievement_card.dart';
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
-class PostsFeedScreen extends ConsumerWidget {
+class PostsFeedScreen extends ConsumerStatefulWidget {
   const PostsFeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PostsFeedScreen> createState() => _PostsFeedScreenState();
+}
+
+class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
+  StreamSubscription<QuerySnapshot>? _postSubscription;
+  StreamSubscription<User?>? _authSubscription;
+  
+  List<AchievementPost>? _posts;
+  String? _error;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-initialize stream when auth state changes (sign out -> sign in)
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      _initStream();
+    });
+  }
+
+  void _initStream() {
+    // Clean up old subscription if re-initializing
+    _postSubscription?.cancel();
+    
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    _postSubscription = FirebaseFirestore.instance
+        .collection('posts')
+        .snapshots()
+        .listen(
+      (snapshot) {
+        try {
+          final List<AchievementPost> posts = [];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = doc.data();
+              if (doc.metadata.hasPendingWrites && data['timestamp'] == null) {
+                continue;
+              }
+              posts.add(AchievementPost.fromMap(doc.id, data));
+            } catch (e) {
+              // ignore: avoid_print
+              print('⚠️ PostsFeed: Skipping doc ${doc.id} — $e');
+            }
+          }
+
+          posts.sort((a, b) {
+            final timeA = a.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final timeB = b.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return timeB.compareTo(timeA); // Newest first
+          });
+
+          if (mounted) {
+            setState(() {
+              _posts = posts;
+              _isLoading = false;
+              _error = null;
+            });
+          }
+        } catch (e) {
+          // ignore: avoid_print
+          print('⚠️ PostsFeed: Error sorting docs — $e');
+        }
+      },
+      onError: (err, stack) {
+        // ignore: avoid_print
+        print('🔴 PostsFeed Error: $err\n$stack');
+        if (mounted) {
+          setState(() {
+            _error = err.toString();
+            _isLoading = false;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // Ensure properly cancelled in dispose
+    _postSubscription?.cancel();
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final postsAsync = ref.watch(postsStreamProvider);
 
     return Container(
       width: double.infinity,
@@ -108,53 +199,78 @@ class PostsFeedScreen extends ConsumerWidget {
 
               // ── Feed ──────────────────────────────────────────────
               Expanded(
-                child: postsAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.accent,
-                    ),
-                  ),
-                  error: (err, _) => Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: AppTheme.error,
-                          size: 40,
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        Text(
-                          'Could not load posts',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white38,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  data: (posts) {
-                    if (posts.isEmpty) {
-                      return _EmptyFeedState(theme: theme);
-                    }
-
-                    return ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spaceMd,
-                      ).copyWith(bottom: 100),
-                      itemCount: posts.length,
-                      itemBuilder: (context, index) {
-                        return AchievementCard(post: posts[index]);
-                      },
-                    );
-                  },
-                ),
+                child: _buildFeedContent(theme),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFeedContent(ThemeData theme) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppTheme.accent,
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spaceLg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppTheme.error,
+                size: 40,
+              ),
+              const SizedBox(height: AppTheme.spaceMd),
+              Text(
+                'Could not load posts',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white30,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final currentPosts = _posts ?? [];
+    
+    if (currentPosts.isEmpty) {
+      return _EmptyFeedState(theme: theme);
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spaceMd,
+      ).copyWith(bottom: 100),
+      itemCount: currentPosts.length,
+      itemBuilder: (context, index) {
+        return AchievementCard(post: currentPosts[index]);
+      },
     );
   }
 }
@@ -249,7 +365,9 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(postActionProvider.notifier).createPost(
+      // Call the service directly — the notifier swallows exceptions, which
+      // prevents this catch block from firing and the sheet from closing.
+      await ref.read(postServiceProvider).createPost(
             title: title,
             description: description,
             category: _selectedCategory.label,
@@ -263,7 +381,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                 SizedBox(width: 10),
-                Text('Achievement posted!'),
+                Text('Achievement shared successfully!'),
               ],
             ),
             backgroundColor: AppTheme.success,
@@ -282,6 +400,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
               'Error: ${e.toString().replaceAll('Exception: ', '')}',
             ),
             backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -404,11 +523,11 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           setState(() => _selectedCategory = cat);
                         },
                         backgroundColor:
-                            Colors.white.withValues(alpha: 0.08),
+                            Colors.white.withValues(alpha: 0.10),
                         selectedColor:
-                            AppTheme.accent.withValues(alpha: 0.25),
+                            AppTheme.accent.withValues(alpha: 0.85),
                         labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.accent : Colors.white60,
+                          color: isSelected ? Colors.white : Colors.white,
                           fontWeight:
                               isSelected ? FontWeight.w700 : FontWeight.w500,
                           fontSize: 13,
@@ -419,8 +538,8 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           ),
                           side: BorderSide(
                             color: isSelected
-                                ? AppTheme.accent.withValues(alpha: 0.5)
-                                : Colors.white.withValues(alpha: 0.1),
+                                ? AppTheme.accent
+                                : Colors.white.withValues(alpha: 0.15),
                           ),
                         ),
                         showCheckmark: false,

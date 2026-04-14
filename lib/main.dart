@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,8 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Explicitly enforce local persistence and keep tokens fresh
+    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }
@@ -103,7 +106,10 @@ class AuthGate extends ConsumerWidget {
 
     return authState.when(
       // ── Authenticated ─────────────────────────────────────────────
-      data: (user) {
+      data: (streamUser) {
+        // Prevent false sign-outs: check currentUser directly if stream is unexpectedly null
+        final user = streamUser ?? ref.read(authServiceProvider).currentUser;
+
         Widget child;
         if (user != null) {
           if (!user.emailVerified) {
