@@ -522,14 +522,12 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           HapticFeedback.selectionClick();
                           setState(() => _selectedCategory = cat);
                         },
-                        backgroundColor:
-                            Colors.white.withValues(alpha: 0.10),
-                        selectedColor:
-                            AppTheme.accent.withValues(alpha: 0.85),
+                        backgroundColor: Colors.grey[200],
+                        selectedColor: AppTheme.accent,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white,
+                          color: isSelected ? Colors.white : Colors.black87,
                           fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
                         shape: RoundedRectangleBorder(
@@ -539,7 +537,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                           side: BorderSide(
                             color: isSelected
                                 ? AppTheme.accent
-                                : Colors.white.withValues(alpha: 0.15),
+                                : Colors.transparent,
                           ),
                         ),
                         showCheckmark: false,
