@@ -10,21 +10,26 @@ import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 import '../widgets/rating_sheet.dart';
 import 'home_screen.dart';
+import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
+import 'search_screen.dart';
 import 'student_profile_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AppShell — Two-Tab Navigation Shell
+// AppShell — Symmetric 4-Tab Navigation Shell
 // ═══════════════════════════════════════════════════════════════════════════
 //
 // The root scaffold that hosts:
 //
-//   1. An [IndexedStack] body with two tabs:
-//        [0] Dashboard  (HomeScreen)
-//        [1] Profile    (ProfileScreen)
+//   1. An [IndexedStack] body with four tabs:
+//        [0] Dashboard    (HomeScreen)
+//        [1] Leaderboard  (LeaderboardScreen)
+//        [2] Search       (SearchScreen)
+//        [3] Profile      (ProfileScreen)
 //
 //   2. A [BottomAppBar] with a [CircularNotchedRectangle] shape,
 //      creating the premium notch cutout for the FAB.
+//      Layout: 2 icons left of notch | GAP | 2 icons right of notch
 //
 //   3. A centre-docked [FloatingActionButton] that opens a full-screen
 //      Campus Directory modal with search + Firestore student list.
@@ -43,8 +48,13 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  // Two screens stay alive via IndexedStack.
-  static const _screens = <Widget>[HomeScreen(), ProfileScreen()];
+  // Four screens stay alive via IndexedStack.
+  static const _screens = <Widget>[
+    HomeScreen(),        // Index 0 — Dashboard
+    LeaderboardScreen(), // Index 1 — Leaderboard
+    SearchScreen(),      // Index 2 — Search
+    ProfileScreen(),     // Index 3 — Profile
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +85,9 @@ class _AppShellState extends State<AppShell> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ── Left side: Dashboard ─────────────────────────────
+            // ════════ LEFT SIDE (2 tabs) ════════
+
+            // ── Tab 0: Dashboard ────────────────────────────────
             _NavBarButton(
               icon: Icons.dashboard_rounded,
               label: 'Dashboard',
@@ -83,12 +95,35 @@ class _AppShellState extends State<AppShell> {
               onTap: () => setState(() => _currentIndex = 0),
             ),
 
-            // ── Right side: Profile ─────────────────────────────
+            // ── Tab 1: Leaderboard ──────────────────────────────
+            _NavBarButton(
+              icon: Icons.leaderboard_rounded,
+              label: 'Ranks',
+              isActive: _currentIndex == 1,
+              onTap: () => setState(() => _currentIndex = 1),
+            ),
+
+            // ════════ NOTCH GAP ════════
+            // The FAB sits here. SizedBox creates breathing room so
+            // icons don't get cropped by the circular notch.
+            const SizedBox(width: 48),
+
+            // ════════ RIGHT SIDE (2 tabs) ════════
+
+            // ── Tab 2: Search ───────────────────────────────────
+            _NavBarButton(
+              icon: Icons.search_rounded,
+              label: 'Search',
+              isActive: _currentIndex == 2,
+              onTap: () => setState(() => _currentIndex = 2),
+            ),
+
+            // ── Tab 3: Profile ──────────────────────────────────
             _NavBarButton(
               icon: Icons.person_rounded,
               label: 'Profile',
-              isActive: _currentIndex == 1,
-              onTap: () => setState(() => _currentIndex = 1),
+              isActive: _currentIndex == 3,
+              onTap: () => setState(() => _currentIndex = 3),
             ),
           ],
         ),
@@ -317,7 +352,7 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                     horizontal: AppTheme.spaceLg,
                                   ).copyWith(bottom: AppTheme.spaceLg),
                                   itemCount: filtered.length,
-                                  separatorBuilder: (_, __) =>
+                                  separatorBuilder: (_, _) =>
                                       const SizedBox(height: 4),
                                   itemBuilder: (context, index) {
                                     final doc = filtered[index];
