@@ -271,6 +271,51 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
   }
 
   // ═════════════════════════════════════════════════════════════════════
+  // penalizeStudent - Gavel Logic (Penalty)
+  // ═════════════════════════════════════════════════════════════════════
+  Future<void> penalizeStudent({
+    required String studentId,
+    required String reportId,
+    double penaltyAmount = 0.1,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+
+    await firestore.runTransaction((transaction) async {
+      // 1. Read the student document
+      final userRef = firestore.collection('users').doc(studentId);
+      final userSnap = await transaction.get(userRef);
+
+      if (!userSnap.exists) {
+        throw Exception('Student not found');
+      }
+
+      final userData = userSnap.data() as Map<String, dynamic>;
+      final currentRep = (userData['reputation'] as num?)?.toDouble() ?? 0.0;
+      final cgpa = (userData['cgpa_score'] as num?)?.toDouble() ?? 0.0;
+
+      // 2. Deduct reputation, floor at 0.0
+      final newRep = (currentRep - penaltyAmount).clamp(0.0, 1.0);
+
+      // 3. Recalculate credibility: (0.6 × (cgpa/10.0)) + (0.4 × rep)
+      final normalizedCgpa = cgpa / 10.0;
+      final newCredibility =
+          ((0.6 * normalizedCgpa) + (0.4 * newRep)).clamp(0.0, 1.0);
+
+      // 4. Update student document
+      transaction.update(userRef, {
+        'reputation': newRep,
+        'credibility': newCredibility,
+      });
+
+      // 5. Mark report as actioned/penalized
+      final reportRef = firestore.collection('reports').doc(reportId);
+      transaction.update(reportRef, {
+        'status': 'resolved_penalized',
+      });
+    });
+  }
+
+  // ═════════════════════════════════════════════════════════════════════
   // submitTeacherRating
   // ═════════════════════════════════════════════════════════════════════
   Future<void> submitTeacherRating({

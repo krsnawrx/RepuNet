@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/report.dart';
 import '../providers/auth_provider.dart';
+import '../providers/reputation_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'student_profile_screen.dart';
@@ -24,6 +26,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   final List<Widget> _tabs = const [
     _TeacherStudentsTab(),
+    _TeacherReportsTab(),
     _TeacherProfileTab(),
   ];
 
@@ -43,6 +46,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             icon: Icon(Icons.people_outline_rounded),
             activeIcon: Icon(Icons.people_rounded),
             label: 'Students',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.flag_outlined),
+            activeIcon: Icon(Icons.flag_rounded),
+            label: 'Reports',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
@@ -831,6 +839,709 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
         },
       ),
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// _TeacherReportsTab — Pending Reports Moderation
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _TeacherReportsTab extends StatelessWidget {
+  const _TeacherReportsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.navy, AppTheme.navyLight, AppTheme.navyMedium],
+          stops: [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceLg,
+                AppTheme.spaceLg,
+                AppTheme.spaceLg,
+                AppTheme.spaceSm,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.warning.withValues(alpha: 0.15),
+                    ),
+                    child: const Icon(
+                      Icons.flag_rounded,
+                      color: AppTheme.warning,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceMd),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pending Reports',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Review student misconduct reports',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white38,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+
+            // ── Reports Stream ──────────────────────────────────────
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('reports')
+                    .where('status', isEqualTo: 'pending')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.accent,
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppTheme.error,
+                            size: 40,
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Text(
+                            'Error loading reports. Check connection or indices.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+                  
+                  // Sort locally to avoid needing a Firestore composite index
+                  // for 'status' == 'pending' and 'timestamp' DESC.
+                  final List<Report> reports = docs.map((d) {
+                    return Report.fromMap(d.id, d.data() as Map<String, dynamic>);
+                  }).toList()
+                    ..sort((a, b) {
+                      final timeA = a.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+                      final timeB = b.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+                      return timeB.compareTo(timeA); // Descending
+                    });
+
+                  // ── Empty State ────────────────────────────────────
+                  if (reports.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.success.withValues(alpha: 0.12),
+                            ),
+                            child: const Icon(
+                              Icons.check_circle_outline_rounded,
+                              color: AppTheme.success,
+                              size: 44,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spaceLg),
+                          Text(
+                            'All clear!',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'No pending reports to review',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // ── Reports List ──────────────────────────────────
+                  return ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spaceMd,
+                    ).copyWith(bottom: 100),
+                    itemCount: reports.length,
+                    itemBuilder: (context, index) {
+                      return _ReportCard(report: reports[index]);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// _ReportCard — Individual report card with actions
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ReportCard extends ConsumerWidget {
+  const _ReportCard({
+    required this.report,
+  });
+
+  final Report report;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    return GlassmorphicCard(
+      padding: const EdgeInsets.all(AppTheme.spaceMd),
+      fillOpacity: 0.10,
+      borderOpacity: 0.14,
+      margin: const EdgeInsets.only(bottom: AppTheme.spaceSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header: Reason badge + Timestamp ─────────────────────
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _reasonIcon(report.reason),
+                      color: AppTheme.warning,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      report.reason,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: AppTheme.warning,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (report.timestamp != null)
+                Text(
+                  _timeAgo(report.timestamp!),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white30,
+                    fontSize: 11,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spaceMd),
+
+          // ── Live Users Info Fetching ────────────────────────────────
+          // We fetch both the reporter and reported student to show Handles
+          FutureBuilder<List<DocumentSnapshot>>(
+            future: Future.wait([
+              FirebaseFirestore.instance.collection('users').doc(report.reporterId).get(),
+              FirebaseFirestore.instance.collection('users').doc(report.reportedId).get(),
+            ]),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting || !snap.hasData) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    "Loading participants...",
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white30),
+                  ),
+                );
+              }
+
+              final reporterDoc = snap.data![0];
+              final reportedDoc = snap.data![1];
+
+              final reporterHandle = reporterDoc.exists
+                  ? '@${(reporterDoc.data() as Map<String, dynamic>)['username'] ?? 'unknown'}'
+                  : '@unknown';
+              
+              final reportedName = reportedDoc.exists
+                  ? (reportedDoc.data() as Map<String, dynamic>)['name']?.toString() ?? 'Unknown'
+                  : 'Unknown';
+              final reportedHandle = reportedDoc.exists
+                  ? '@${(reportedDoc.data() as Map<String, dynamic>)['username'] ?? 'unknown'}'
+                  : '@unknown';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Text: @reporter flagged @reported
+                  RichText(
+                    text: TextSpan(
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60, fontSize: 13),
+                      children: [
+                        TextSpan(
+                          text: reporterHandle, 
+                          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.accentLight)
+                        ),
+                        const TextSpan(text: ' flagged '),
+                        TextSpan(
+                          text: reportedHandle, 
+                          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.error)
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  // Reported Student Avatar & Name
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.error.withValues(alpha: 0.12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            reportedName.isNotEmpty ? reportedName[0].toUpperCase() : '?',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: AppTheme.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reportedName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (reportedHandle.isNotEmpty)
+                            Text(
+                              reportedHandle,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.white38,
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusSm,
+                          ),
+                        ),
+                        child: Text(
+                          'REPORTED',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppTheme.error,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+
+          // ── Details (if any) ─────────────────────────────────────
+          if (report.details.isNotEmpty) ...[
+            const SizedBox(height: AppTheme.spaceMd),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Text(
+                report.details,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white60,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: AppTheme.spaceMd),
+
+          // ── Action Buttons: Dismiss + Validate & Penalize ────────
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _handleDismiss(context, report.id),
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                    label: const Text('Dismiss'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white54,
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusSm,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.spaceMd),
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showPenaltyConfirmation(
+                      context,
+                      ref,
+                      report,
+                    ),
+                    icon: const Icon(
+                      Icons.gavel_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Validate & Penalize',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: AppTheme.error,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusSm,
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Dismiss: mark report as resolved ────────────────────────────────
+  Future<void> _handleDismiss(BuildContext context, String reportId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('reports')
+          .doc(reportId)
+          .update({'status': 'resolved_dismissed'});
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_outline_rounded, color: Colors.white54, size: 20),
+                SizedBox(width: 8),
+                Text('Report dismissed & ignored.'),
+              ],
+            ),
+            backgroundColor: Colors.grey.shade800,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Penalty Confirmation Dialog ─────────────────────────────────────
+  void _showPenaltyConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    Report report,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.navyLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.error.withValues(alpha: 0.15),
+              ),
+              child: const Icon(
+                Icons.gavel_rounded,
+                color: AppTheme.error,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Confirm Penalty',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Validate this report? This will deduct exactly 0.1 from the reported student\'s reputation.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppTheme.warning,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Reason: ${report.reason}',
+                    style: const TextStyle(
+                      color: AppTheme.warning,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _executePenalty(context, ref, report);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+            ),
+            child: const Text(
+              'Apply 0.1 Penalty',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Execute Penalty: Atomic Service Call ──────────────────────────
+  Future<void> _executePenalty(
+    BuildContext context,
+    WidgetRef ref,
+    Report report,
+  ) async {
+    try {
+      await ref.read(reputationProvider.notifier).penalizeStudent(
+        studentId: report.reportedId,
+        reportId: report.id,
+        penaltyAmount: 0.1,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.gavel_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Text('Penalty applied — reputation deducted by 0.1'),
+              ],
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error applying penalty: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+
+  IconData _reasonIcon(String reason) {
+    switch (reason.toLowerCase()) {
+      case 'spam':
+        return Icons.block_rounded;
+      case 'harassment':
+        return Icons.warning_amber_rounded;
+      case 'fake score':
+        return Icons.score_rounded;
+      case 'inappropriate bio':
+        return Icons.edit_off_rounded;
+      default:
+        return Icons.flag_rounded;
+    }
+  }
+
+  String _timeAgo(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}';
   }
 }
 
