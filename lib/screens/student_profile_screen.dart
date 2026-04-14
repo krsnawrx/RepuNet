@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
+
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/reputation_provider.dart';
-import '../services/report_service.dart';
+
 import '../theme/app_theme.dart';
+import 'report_student_sheet.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
   final String uid;
@@ -33,7 +34,11 @@ class StudentProfileScreen extends ConsumerWidget {
               icon: const Icon(Icons.flag_outlined),
               color: Colors.redAccent,
               tooltip: 'Report Student',
-              onPressed: () => _showReportSheet(context, uid),
+              onPressed: () => showReportStudentSheet(
+                context,
+                reportedUid: uid,
+                reportedName: 'Student', // Will be updated if name is known
+              ),
             ),
         ],
       ),
@@ -406,18 +411,6 @@ class StudentProfileScreen extends ConsumerWidget {
     return 'Needs Improvement';
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // Report Student — Glassmorphic Bottom Sheet
-  // ═════════════════════════════════════════════════════════════════════════
-
-  void _showReportSheet(BuildContext context, String reportedUid) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _ReportSheetContent(reportedUid: reportedUid),
-    );
-  }
 
   // ═════════════════════════════════════════════════════════════════════════
   // Teacher Rating Dialog (unchanged from original)
@@ -573,272 +566,6 @@ class StudentProfileScreen extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// _ReportSheetContent — Glassmorphic Report Bottom Sheet
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _ReportSheetContent extends StatefulWidget {
-  const _ReportSheetContent({required this.reportedUid});
-  final String reportedUid;
-
-  @override
-  State<_ReportSheetContent> createState() => _ReportSheetContentState();
-}
-
-class _ReportSheetContentState extends State<_ReportSheetContent> {
-  static const _reasons = [
-    'Spam',
-    'Harassment',
-    'Fake Score',
-    'Inappropriate Bio',
-  ];
-
-  String? _selectedReason;
-  final _detailsController = TextEditingController();
-  bool _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _detailsController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: bottomInset),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXl),
-        ),
-        color: AppTheme.navy.withValues(alpha: 0.94),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withValues(alpha: 0.15),
-            width: 1,
-          ),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXl),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spaceLg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Drag handle ──────────────────────────────────────
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceLg),
-
-                // ── Header icon + title ──────────────────────────────
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppTheme.error.withValues(alpha: 0.15),
-                  ),
-                  child: const Icon(
-                    Icons.flag_rounded,
-                    color: AppTheme.error,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-                Text(
-                  'Report Student',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Select a reason for this report',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white38,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceLg),
-
-                // ── Reason chips ─────────────────────────────────────
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _reasons.map((reason) {
-                    final isSelected = _selectedReason == reason;
-                    return ChoiceChip(
-                      label: Text(reason),
-                      selected: isSelected,
-                      onSelected: (_) {
-                        setState(() => _selectedReason = reason);
-                      },
-                      selectedColor: AppTheme.error.withValues(alpha: 0.25),
-                      backgroundColor: Colors.white.withValues(alpha: 0.08),
-                      labelStyle: TextStyle(
-                        color: isSelected ? AppTheme.error : Colors.white70,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                        fontSize: 13,
-                      ),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppTheme.error.withValues(alpha: 0.5)
-                            : Colors.white.withValues(alpha: 0.12),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      ),
-                      checkmarkColor: AppTheme.error,
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-
-                // ── Optional details ─────────────────────────────────
-                TextField(
-                  controller: _detailsController,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Optional details...',
-                    hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      fontSize: 14,
-                    ),
-                    filled: true,
-                    fillColor: Colors.black.withValues(alpha: 0.25),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: BorderSide(
-                        color: AppTheme.error.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.all(14),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceLg),
-
-                // ── Submit button ────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: (_selectedReason == null || _isSubmitting)
-                        ? null
-                        : _handleSubmit,
-                    icon: _isSubmitting
-                        ? const SizedBox.shrink()
-                        : const Icon(
-                            Icons.send_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                    label: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Submit Report',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.error,
-                      disabledBackgroundColor:
-                          AppTheme.error.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceSm),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleSubmit() async {
-    setState(() => _isSubmitting = true);
-
-    try {
-      final service = ReportService();
-      await service.submitReport(
-        reportedId: widget.reportedUid,
-        reason: _selectedReason!,
-        details: _detailsController.text.trim(),
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Report submitted to MUJ Administration.'),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().replaceAll('Exception: ', ''),
-              style: const TextStyle(color: Colors.white),
-            ),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-          ),
-        );
-      }
-      setState(() => _isSubmitting = false);
-    }
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // _GaugePainter — Circular reputation gauge
