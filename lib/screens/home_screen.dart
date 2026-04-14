@@ -10,6 +10,7 @@ import '../widgets/glassmorphic_card.dart';
 import '../widgets/interaction_feed.dart';
 import '../widgets/reputation_hero_card.dart';
 import '../widgets/stability_module.dart';
+import 'posts_feed_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HomeScreen — Glassmorphic Dashboard (Direct Firestore StreamBuilder)
@@ -162,6 +163,11 @@ class HomeScreen extends ConsumerWidget {
 
                         // Layer 3: Recent ratings feed (last 3)
                         _RatingsStreamFeed(uid: uid),
+
+                        const SizedBox(height: AppTheme.spaceSm),
+
+                        // Layer 4: Achievement Posts — navigate to feed
+                        _AchievementsBanner(),
                       ]),
                     ),
                   ),
@@ -215,6 +221,76 @@ class _RatingsStreamFeed extends StatelessWidget {
 
         return InteractionFeed(interactions: interactions);
       },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// _AchievementsBanner — navigable entry point to Posts Feed
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _AchievementsBanner extends StatelessWidget {
+  const _AchievementsBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const PostsFeedScreen()),
+        );
+      },
+      child: GlassmorphicCard(
+        fillOpacity: 0.08,
+        borderOpacity: 0.14,
+        padding: const EdgeInsets.all(AppTheme.spaceMd),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFFC107).withValues(alpha: 0.15),
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                color: Color(0xFFFFC107),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spaceMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Achievement Posts',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    'Share wins & earn credibility upvotes',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white.withValues(alpha: 0.3),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
