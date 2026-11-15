@@ -9,14 +9,6 @@ import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// VerifyEmailScreen
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// A glassmorphic screen shown when a user is logged in but hasn't
-// verified their email address.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   const VerifyEmailScreen({super.key});
 
@@ -100,20 +92,18 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   Future<void> _checkVerification() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Force Firebase to fetch the latest user token/Profile data from the server
+
       final currentUser = FirebaseAuth.instance.currentUser;
       await currentUser?.reload();
 
-      // 2. Read the freshly loaded user data
       final updatedUser = FirebaseAuth.instance.currentUser;
 
       if (updatedUser != null && updatedUser.emailVerified) {
         await _ensureUserDocumentExists(updatedUser);
-        // 3. User clicked the link! Force the Riverpod stream to refresh.
-        // This wakes up the AuthGate in main.dart to navigate to AppShell.
+
         ref.invalidate(authStateProvider);
       } else {
-        // 4. Still not verified
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -222,7 +212,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         ),
                         const SizedBox(height: AppTheme.spaceXl),
 
-                        // Check Status Button
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -256,7 +245,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
 
-                        // Resend Link Button
                         SizedBox(
                           height: 50,
                           child: OutlinedButton(
@@ -289,7 +277,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   ),
                   const SizedBox(height: AppTheme.spaceLg),
 
-                  // Sign Out Button (in case of typo)
                   TextButton.icon(
                     onPressed: () {
                       ref.read(authServiceProvider).signOut();

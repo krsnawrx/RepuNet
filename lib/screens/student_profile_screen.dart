@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +27,7 @@ class StudentProfileScreen extends ConsumerWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          // ── Report flag icon (hidden for self) ─────────────────────
+
           if (!isSelf)
             IconButton(
               icon: const Icon(Icons.flag_outlined),
@@ -37,7 +36,7 @@ class StudentProfileScreen extends ConsumerWidget {
               onPressed: () => showReportStudentSheet(
                 context,
                 reportedUid: uid,
-                reportedName: 'Student', // Will be updated if name is known
+                reportedName: 'Student',
               ),
             ),
         ],
@@ -131,7 +130,7 @@ class StudentProfileScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Avatar
+
                         Hero(
                           tag: 'avatar_$uid',
                           child: Container(
@@ -194,7 +193,6 @@ class StudentProfileScreen extends ConsumerWidget {
 
                         const SizedBox(height: AppTheme.spaceLg),
 
-                        // Reputation Card
                         Card(
                           color: AppTheme.navy,
                           shape: RoundedRectangleBorder(
@@ -270,7 +268,6 @@ class StudentProfileScreen extends ConsumerWidget {
 
                         const SizedBox(height: AppTheme.spaceLg),
 
-                        // Bio
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -298,7 +295,6 @@ class StudentProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: AppTheme.spaceLg),
 
-                        // Skills
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -410,11 +406,6 @@ class StudentProfileScreen extends ConsumerWidget {
     if (s >= 0.40) return 'Moderate';
     return 'Needs Improvement';
   }
-
-
-  // ═════════════════════════════════════════════════════════════════════════
-  // Teacher Rating Dialog (unchanged from original)
-  // ═════════════════════════════════════════════════════════════════════════
 
   void _showTeacherRatingDialog(
     BuildContext context,
@@ -565,11 +556,6 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 }
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _GaugePainter — Circular reputation gauge
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _GaugePainter extends CustomPainter {
   _GaugePainter({required this.value, required this.color});

@@ -9,16 +9,6 @@ import '../widgets/glassmorphic_card.dart';
 import '../widgets/rating_sheet.dart';
 import 'student_profile_screen.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SearchScreen — Global Campus Directory (Real-Time Firestore)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Displays a real-time, searchable list of all registered students from
-// the Firestore `users` collection. The logged-in user is excluded from
-// the list (self-filter). Each tile includes a "Rate" button that opens
-// the rating sheet pre-selected with that student.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -60,7 +50,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──────────────────────────────────────────────
+
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppTheme.spaceLg,
@@ -77,7 +67,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ),
 
-              // ── Search bar ──────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spaceMd,
@@ -129,7 +118,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
               const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Student list (Firestore real-time) ──────────────────
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -158,8 +146,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                     final docs = snapshot.data?.docs ?? [];
 
-                    // Self-filter: exclude logged-in user and teachers
-                    // Query filter: case-insensitive username match
                     final filtered = docs.where((doc) {
                       if (doc.id == currentUid) return false;
                       final data = doc.data() as Map<String, dynamic>;
@@ -175,7 +161,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Results count ───────────────────────────────
+
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppTheme.spaceLg,
@@ -190,7 +176,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         const SizedBox(height: AppTheme.spaceSm),
 
-                        // ── List ────────────────────────────────────────
                         Expanded(
                           child: filtered.isEmpty
                               ? Center(
@@ -256,8 +241,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-// ── Student list tile ───────────────────────────────────────────────────────
-
 class _StudentTile extends StatelessWidget {
   const _StudentTile({
     required this.uid,
@@ -294,7 +277,7 @@ class _StudentTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 2),
         child: Row(
           children: [
-            // ── Avatar with Hero tag for transition animation ────────
+
             Hero(
               tag: 'avatar_$uid',
               child: Container(
@@ -321,7 +304,6 @@ class _StudentTile extends StatelessWidget {
             ),
             const SizedBox(width: AppTheme.spaceMd),
 
-            // Name + CGPA
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,7 +326,6 @@ class _StudentTile extends StatelessWidget {
               ),
             ),
 
-            // ── Reputation badge ────────────────────────────────────
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -363,7 +344,6 @@ class _StudentTile extends StatelessWidget {
 
             const SizedBox(width: 6),
 
-            // ── Rate button ─────────────────────────────────────────
             IconButton(
               icon: const Icon(
                 Icons.star_half_rounded,

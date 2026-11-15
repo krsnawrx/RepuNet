@@ -12,18 +12,6 @@ import '../providers/post_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/achievement_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PostsFeedScreen — Achievement Posts Feed with Create Post FAB
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// A full-screen, dark glassmorphic feed that:
-//   1. Streams all achievement posts from Firestore in real-time
-//   2. Renders each as an [AchievementCard] with upvote toggle
-//   3. Provides a FAB that opens a bottom sheet for creating new posts
-//   4. Shows elegant empty/loading/error states
-//
-// ═══════════════════════════════════════════════════════════════════════════
-
 class PostsFeedScreen extends ConsumerStatefulWidget {
   const PostsFeedScreen({super.key});
 
@@ -34,7 +22,7 @@ class PostsFeedScreen extends ConsumerStatefulWidget {
 class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
   StreamSubscription<QuerySnapshot>? _postSubscription;
   StreamSubscription<User?>? _authSubscription;
-  
+
   List<AchievementPost>? _posts;
   String? _error;
   bool _isLoading = true;
@@ -42,16 +30,16 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
   @override
   void initState() {
     super.initState();
-    // Re-initialize stream when auth state changes (sign out -> sign in)
+
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       _initStream();
     });
   }
 
   void _initStream() {
-    // Clean up old subscription if re-initializing
+
     _postSubscription?.cancel();
-    
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -72,15 +60,15 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
               }
               posts.add(AchievementPost.fromMap(doc.id, data));
             } catch (e) {
-              // ignore: avoid_print
-              print('⚠️ PostsFeed: Skipping doc ${doc.id} — $e');
+
+              print('bad doc error: $e');
             }
           }
 
           posts.sort((a, b) {
             final timeA = a.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
             final timeB = b.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return timeB.compareTo(timeA); // Newest first
+            return timeB.compareTo(timeA);
           });
 
           if (mounted) {
@@ -91,13 +79,13 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
             });
           }
         } catch (e) {
-          // ignore: avoid_print
-          print('⚠️ PostsFeed: Error sorting docs — $e');
+
+          print('sort crash: $e');
         }
       },
       onError: (err, stack) {
-        // ignore: avoid_print
-        print('🔴 PostsFeed Error: $err\n$stack');
+
+        print('feed broke: $err');
         if (mounted) {
           setState(() {
             _error = err.toString();
@@ -110,7 +98,7 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
 
   @override
   void dispose() {
-    // Ensure properly cancelled in dispose
+
     _postSubscription?.cancel();
     _authSubscription?.cancel();
     super.dispose();
@@ -133,7 +121,7 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        // ── FAB — Create Post ─────────────────────────────────────────
+
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _showCreatePostSheet(context, ref),
           backgroundColor: AppTheme.accent,
@@ -150,7 +138,7 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ────────────────────────────────────────────
+
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppTheme.spaceLg,
@@ -197,7 +185,6 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
               ),
               const SizedBox(height: AppTheme.spaceSm),
 
-              // ── Feed ──────────────────────────────────────────────
               Expanded(
                 child: _buildFeedContent(theme),
               ),
@@ -257,7 +244,7 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
     }
 
     final currentPosts = _posts ?? [];
-    
+
     if (currentPosts.isEmpty) {
       return _EmptyFeedState(theme: theme);
     }
@@ -274,10 +261,6 @@ class _PostsFeedScreenState extends ConsumerState<PostsFeedScreen> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Empty Feed State
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _EmptyFeedState extends StatelessWidget {
   const _EmptyFeedState({required this.theme});
@@ -323,10 +306,6 @@ class _EmptyFeedState extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Create Post Bottom Sheet
-// ═══════════════════════════════════════════════════════════════════════════
-
 void _showCreatePostSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
     context: context,
@@ -365,8 +344,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Call the service directly — the notifier swallows exceptions, which
-      // prevents this catch block from firing and the sheet from closing.
+
       await ref.read(postServiceProvider).createPost(
             title: title,
             description: description,
@@ -450,7 +428,7 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Drag handle ──────────────────────────────────────
+
                   Center(
                     child: Container(
                       width: 40,
@@ -463,7 +441,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
 
-                  // ── Header icon + title ──────────────────────────────
                   Center(
                     child: Column(
                       children: [
@@ -501,7 +478,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: AppTheme.spaceLg),
 
-                  // ── Category chips ───────────────────────────────────
                   Text(
                     'Category',
                     style: theme.textTheme.labelLarge?.copyWith(
@@ -550,7 +526,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: AppTheme.spaceLg),
 
-                  // ── Title field ──────────────────────────────────────
                   Text(
                     'Title',
                     style: theme.textTheme.labelLarge?.copyWith(
@@ -570,7 +545,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
 
-                  // ── Description field ────────────────────────────────
                   Text(
                     'Description (optional)',
                     style: theme.textTheme.labelLarge?.copyWith(
@@ -590,7 +564,6 @@ class _CreatePostSheetState extends ConsumerState<_CreatePostSheet> {
                   ),
                   const SizedBox(height: AppTheme.spaceLg),
 
-                  // ── Submit button ────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 50,

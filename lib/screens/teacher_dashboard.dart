@@ -10,10 +10,6 @@ import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'student_profile_screen.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TeacherDashboard
-// ═══════════════════════════════════════════════════════════════════════════
-
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
 
@@ -62,10 +58,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _TeacherStudentsTab
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _TeacherStudentsTab extends StatefulWidget {
   const _TeacherStudentsTab();
@@ -168,7 +160,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
               ),
             ),
 
-            // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spaceMd),
               child: TextField(
@@ -207,7 +198,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
             ),
             const SizedBox(height: AppTheme.spaceSm),
 
-            // Filters Filter
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spaceMd),
@@ -281,11 +271,10 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
 
                   final docs = snapshot.data?.docs ?? [];
 
-                  // Local filtering
                   var filtered = docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     if (data['role'] == 'teacher')
-                      return false; // Hide teachers
+                      return false;
 
                     if (_selectedCourse != null &&
                         data['course'] != _selectedCourse)
@@ -306,7 +295,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
                     return true;
                   }).toList();
 
-                  // Sort locally
                   filtered.sort((a, b) {
                     final repA =
                         ((a.data() as Map<String, dynamic>)['reputation']
@@ -465,7 +453,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
     );
   }
 
-  /// Shows an action sheet with 'Rate Student' and 'Update CGPA' options.
   void _showStudentActionSheet(
     BuildContext context,
     String studentUid,
@@ -573,7 +560,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
     );
   }
 
-  /// Shows a bottom sheet for updating a student's CGPA.
   void _showUpdateCgpaSheet(
     BuildContext context,
     String studentUid,
@@ -842,10 +828,6 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// _TeacherReportsTab — Pending Reports Moderation
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _TeacherReportsTab extends StatelessWidget {
   const _TeacherReportsTab();
 
@@ -869,7 +851,7 @@ class _TeacherReportsTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────────
+
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppTheme.spaceLg,
@@ -916,7 +898,6 @@ class _TeacherReportsTab extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spaceSm),
 
-            // ── Reports Stream ──────────────────────────────────────
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -955,19 +936,16 @@ class _TeacherReportsTab extends StatelessWidget {
                   }
 
                   final docs = snapshot.data?.docs ?? [];
-                  
-                  // Sort locally to avoid needing a Firestore composite index
-                  // for 'status' == 'pending' and 'timestamp' DESC.
+
                   final List<Report> reports = docs.map((d) {
                     return Report.fromMap(d.id, d.data() as Map<String, dynamic>);
                   }).toList()
                     ..sort((a, b) {
                       final timeA = a.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
                       final timeB = b.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-                      return timeB.compareTo(timeA); // Descending
+                      return timeB.compareTo(timeA);
                     });
 
-                  // ── Empty State ────────────────────────────────────
                   if (reports.isEmpty) {
                     return Center(
                       child: Column(
@@ -1006,7 +984,6 @@ class _TeacherReportsTab extends StatelessWidget {
                     );
                   }
 
-                  // ── Reports List ──────────────────────────────────
                   return ListView.builder(
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
@@ -1027,10 +1004,6 @@ class _TeacherReportsTab extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// _ReportCard — Individual report card with actions
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _ReportCard extends ConsumerWidget {
   const _ReportCard({
     required this.report,
@@ -1050,7 +1023,7 @@ class _ReportCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: Reason badge + Timestamp ─────────────────────
+
           Row(
             children: [
               Container(
@@ -1095,8 +1068,6 @@ class _ReportCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppTheme.spaceMd),
 
-          // ── Live Users Info Fetching ────────────────────────────────
-          // We fetch both the reporter and reported student to show Handles
           FutureBuilder<List<DocumentSnapshot>>(
             future: Future.wait([
               FirebaseFirestore.instance.collection('users').doc(report.reporterId).get(),
@@ -1119,7 +1090,7 @@ class _ReportCard extends ConsumerWidget {
               final reporterHandle = reporterDoc.exists
                   ? '@${(reporterDoc.data() as Map<String, dynamic>)['username'] ?? 'unknown'}'
                   : '@unknown';
-              
+
               final reportedName = reportedDoc.exists
                   ? (reportedDoc.data() as Map<String, dynamic>)['name']?.toString() ?? 'Unknown'
                   : 'Unknown';
@@ -1130,25 +1101,25 @@ class _ReportCard extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Text: @reporter flagged @reported
+
                   RichText(
                     text: TextSpan(
                       style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60, fontSize: 13),
                       children: [
                         TextSpan(
-                          text: reporterHandle, 
+                          text: reporterHandle,
                           style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.accentLight)
                         ),
                         const TextSpan(text: ' flagged '),
                         TextSpan(
-                          text: reportedHandle, 
+                          text: reportedHandle,
                           style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.error)
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
-                  // Reported Student Avatar & Name
+
                   Row(
                     children: [
                       Container(
@@ -1218,7 +1189,6 @@ class _ReportCard extends ConsumerWidget {
             },
           ),
 
-          // ── Details (if any) ─────────────────────────────────────
           if (report.details.isNotEmpty) ...[
             const SizedBox(height: AppTheme.spaceMd),
             Container(
@@ -1244,7 +1214,6 @@ class _ReportCard extends ConsumerWidget {
 
           const SizedBox(height: AppTheme.spaceMd),
 
-          // ── Action Buttons: Dismiss + Validate & Penalize ────────
           Row(
             children: [
               Expanded(
@@ -1311,7 +1280,6 @@ class _ReportCard extends ConsumerWidget {
     );
   }
 
-  // ── Dismiss: mark report as resolved ────────────────────────────────
   Future<void> _handleDismiss(BuildContext context, String reportId) async {
     try {
       await FirebaseFirestore.instance
@@ -1349,7 +1317,6 @@ class _ReportCard extends ConsumerWidget {
     }
   }
 
-  // ── Penalty Confirmation Dialog ─────────────────────────────────────
   void _showPenaltyConfirmation(
     BuildContext context,
     WidgetRef ref,
@@ -1466,7 +1433,6 @@ class _ReportCard extends ConsumerWidget {
     );
   }
 
-  // ── Execute Penalty: Atomic Service Call ──────────────────────────
   Future<void> _executePenalty(
     BuildContext context,
     WidgetRef ref,
@@ -1511,8 +1477,6 @@ class _ReportCard extends ConsumerWidget {
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-
   IconData _reasonIcon(String reason) {
     switch (reason.toLowerCase()) {
       case 'spam':
@@ -1544,10 +1508,6 @@ class _ReportCard extends ConsumerWidget {
     return '${months[date.month - 1]} ${date.day}';
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _TeacherProfileTab
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _TeacherProfileTab extends ConsumerWidget {
   const _TeacherProfileTab();

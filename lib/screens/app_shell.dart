@@ -15,29 +15,6 @@ import 'profile_screen.dart';
 import 'search_screen.dart';
 import 'student_profile_screen.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AppShell — Symmetric 4-Tab Navigation Shell
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// The root scaffold that hosts:
-//
-//   1. An [IndexedStack] body with four tabs:
-//        [0] Dashboard    (HomeScreen)
-//        [1] Leaderboard  (LeaderboardScreen)
-//        [2] Search       (SearchScreen)
-//        [3] Profile      (ProfileScreen)
-//
-//   2. A [BottomAppBar] with a [CircularNotchedRectangle] shape,
-//      creating the premium notch cutout for the FAB.
-//      Layout: 2 icons left of notch | GAP | 2 icons right of notch
-//
-//   3. A centre-docked [FloatingActionButton] that opens a full-screen
-//      Campus Directory modal with search + Firestore student list.
-//
-//   4. [extendBody: true] so the gradient backgrounds from each
-//      screen extend behind the translucent bottom bar.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -48,24 +25,21 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  // Four screens stay alive via IndexedStack.
   static const _screens = <Widget>[
-    HomeScreen(),        // Index 0 — Dashboard
-    LeaderboardScreen(), // Index 1 — Leaderboard
-    SearchScreen(),      // Index 2 — Search
-    ProfileScreen(),     // Index 3 — Profile
+    HomeScreen(),
+    LeaderboardScreen(),
+    SearchScreen(),
+    ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ── extendBody lets the gradient bleed under the bottom bar ────
+
       extendBody: true,
 
-      // ── Body: IndexedStack preserves state across tab switches ─────
       body: IndexedStack(index: _currentIndex, children: _screens),
 
-      // ── Centre-docked FAB (opens full-screen Campus Directory) ─────
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCampusDirectoryModal(context),
         backgroundColor: AppTheme.accent,
@@ -76,7 +50,6 @@ class _AppShellState extends State<AppShell> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // ── Bottom App Bar with notch ─────────────────────────────────
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
@@ -85,9 +58,7 @@ class _AppShellState extends State<AppShell> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ════════ LEFT SIDE (2 tabs) ════════
 
-            // ── Tab 0: Dashboard ────────────────────────────────
             _NavBarButton(
               icon: Icons.dashboard_rounded,
               label: 'Dashboard',
@@ -95,7 +66,6 @@ class _AppShellState extends State<AppShell> {
               onTap: () => setState(() => _currentIndex = 0),
             ),
 
-            // ── Tab 1: Leaderboard ──────────────────────────────
             _NavBarButton(
               icon: Icons.leaderboard_rounded,
               label: 'Ranks',
@@ -103,14 +73,8 @@ class _AppShellState extends State<AppShell> {
               onTap: () => setState(() => _currentIndex = 1),
             ),
 
-            // ════════ NOTCH GAP ════════
-            // The FAB sits here. SizedBox creates breathing room so
-            // icons don't get cropped by the circular notch.
             const SizedBox(width: 48),
 
-            // ════════ RIGHT SIDE (2 tabs) ════════
-
-            // ── Tab 2: Search ───────────────────────────────────
             _NavBarButton(
               icon: Icons.search_rounded,
               label: 'Search',
@@ -118,7 +82,6 @@ class _AppShellState extends State<AppShell> {
               onTap: () => setState(() => _currentIndex = 2),
             ),
 
-            // ── Tab 3: Profile ──────────────────────────────────
             _NavBarButton(
               icon: Icons.person_rounded,
               label: 'Profile',
@@ -131,10 +94,6 @@ class _AppShellState extends State<AppShell> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Full-Screen Campus Directory Modal
-// ═══════════════════════════════════════════════════════════════════════════
 
 void _showCampusDirectoryModal(BuildContext context) {
   showModalBottomSheet(
@@ -193,7 +152,7 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Column(
             children: [
-              // ── Drag handle ────────────────────────────────────────
+
               Padding(
                 padding: const EdgeInsets.only(top: AppTheme.spaceMd),
                 child: Container(
@@ -207,7 +166,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Title ──────────────────────────────────────────────
               Text(
                 'Campus Directory',
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -225,7 +183,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Search bar ─────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spaceLg,
@@ -276,7 +233,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Real-time Firestore student list ───────────────────
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -305,7 +261,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
 
                     final docs = snapshot.data?.docs ?? [];
 
-                    // Self-filter + search query filter + hide teachers
                     final filtered = docs.where((doc) {
                       if (doc.id == currentUid) return false;
                       final data = doc.data() as Map<String, dynamic>;
@@ -318,7 +273,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                       );
                     }).toList();
 
-                    // Results count
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -394,7 +348,7 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                         ),
                                         child: Row(
                                           children: [
-                                            // Avatar
+
                                             Container(
                                               width: 44,
                                               height: 44,
@@ -426,7 +380,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                               width: AppTheme.spaceMd,
                                             ),
 
-                                            // Name + CGPA
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
@@ -456,7 +409,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                               ),
                                             ),
 
-                                            // Reputation badge
                                             Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -487,7 +439,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
                                             ),
                                             const SizedBox(width: 6),
 
-                                            // Rate button
                                             IconButton(
                                               icon: const Icon(
                                                 Icons.star_half_rounded,
@@ -540,10 +491,6 @@ class _CampusDirectorySheetState extends ConsumerState<_CampusDirectorySheet> {
     return parts[0][0].toUpperCase();
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _NavBarButton — custom bottom nav button for the notched bar
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _NavBarButton extends StatelessWidget {
   const _NavBarButton({

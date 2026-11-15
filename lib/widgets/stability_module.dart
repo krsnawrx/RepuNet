@@ -7,31 +7,9 @@ import '../theme/app_theme.dart';
 import '../widgets/animated_counter.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// StabilityModule — PRD §6 Step 3 (Smoothing Logic Visualisation)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Visualises the Exponential Moving Average (EMA) smoothing:
-//
-//   newReputation = oldRep × 0.7 + calculatedRep × 0.3
-//
-// The segmented progress bar fills to `smoothingAnchor` (default 70%)
-// to show how much of the current score is "anchored" to history.
-//
-// Why this matters (PRD §7 — Manipulation Protections):
-//   • A single bad review shifts the score by at most 30%.
-//   • Consistent ratings over time are required for meaningful change.
-//   • This is the core anti-review-bombing defence.
-//
-// Below the progress bar, two stat cards show:
-//   1. Credibility weight (0.6×cgpa + 0.4×rep, capped at 1.0)
-//   2. Total recent interaction count
-// ═══════════════════════════════════════════════════════════════════════════
-
 class StabilityModule extends StatelessWidget {
   const StabilityModule({super.key, required this.rep});
 
-  /// The current reputation state from [reputationProvider].
   final ReputationState rep;
 
   @override
@@ -40,12 +18,12 @@ class StabilityModule extends StatelessWidget {
 
     return Column(
       children: [
-        // ── Stability bar card ──────────────────────────────────────────
+
         GlassmorphicCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
+
               Row(
                 children: [
                   const Icon(
@@ -73,7 +51,6 @@ class StabilityModule extends StatelessWidget {
               ),
               const SizedBox(height: AppTheme.spaceSm),
 
-              // Explanation
               Text(
                 'Your score is ${(rep.smoothingAnchor * 100).toInt()}% '
                 'anchored to history. New ratings can only shift '
@@ -86,7 +63,6 @@ class StabilityModule extends StatelessWidget {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // ── Smoothing progress bar ────────────────────────────────
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: Stack(
@@ -115,7 +91,6 @@ class StabilityModule extends StatelessWidget {
               ),
               const SizedBox(height: AppTheme.spaceSm),
 
-              // Labels
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -139,7 +114,6 @@ class StabilityModule extends StatelessWidget {
           ),
         ),
 
-        // ── Credibility + stats row ──────────────────────────────────────
         Row(
           children: [
             Expanded(

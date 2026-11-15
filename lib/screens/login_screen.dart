@@ -6,23 +6,6 @@ import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LoginScreen — PRD §11 (User registration/login)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// A minimalist glassmorphic login form on the dark navy gradient.
-//
-// Features:
-//   • Email + password text fields inside a GlassmorphicCard
-//   • "Sign In" elevated button with loading state
-//   • "Create Account" toggle (switches to sign-up mode)
-//   • Error display via SnackBar
-//
-// The form calls [AuthService.signIn] or [AuthService.signUp].
-// The AuthGate in main.dart watches the auth stream and automatically
-// navigates to the AppShell when login succeeds.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -59,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       if (_isSignUp) {
-        // Validate email format and domain
+
         final emailRegex = RegExp(
           r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
         );
@@ -83,8 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         await authService.signIn(email: email, password: password);
       }
-      // AuthGate handles navigation automatically via the auth stream.
-      // AuthGate handles navigation automatically via the auth stream.
+
     } on FirebaseAuthException catch (e) {
       String msg = e.message ?? 'An authentication error occurred.';
       if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
@@ -271,7 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
-        // ── Full-height gradient matching the dashboard ────────────────
+
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -289,7 +271,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── Logo / Branding ──────────────────────────────────
+
                   Icon(Icons.shield_rounded, size: 56, color: AppTheme.accent),
                   const SizedBox(height: AppTheme.spaceSm),
                   Text(
@@ -309,7 +291,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
 
-                  // ── Student / Teacher Toggle ─────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -354,7 +335,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: AppTheme.spaceLg),
 
-                  // ── Login Card (Glassmorphic) ────────────────────────
                   GlassmorphicCard(
                     padding: const EdgeInsets.all(AppTheme.spaceLg),
                     child: Column(
@@ -370,7 +350,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: AppTheme.spaceLg),
 
-                        // Email field
                         _GlassTextField(
                           controller: _emailController,
                           label: 'Email',
@@ -379,7 +358,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
 
-                        // Password field
                         _GlassTextField(
                           controller: _passwordController,
                           label: 'Password',
@@ -399,7 +377,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        // Forgot password (only in Sign In mode)
                         if (!_isSignUp)
                           Align(
                             alignment: Alignment.centerRight,
@@ -419,7 +396,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (!_isSignUp)
                           const SizedBox(height: AppTheme.spaceSm),
 
-                        // Submit button
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -457,7 +433,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: AppTheme.spaceMd),
 
-                  // ── Toggle sign-in / sign-up ─────────────────────────
                   TextButton(
                     onPressed: () => setState(() => _isSignUp = !_isSignUp),
                     child: Text(
@@ -478,10 +453,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _GlassTextField — text input styled for the glass card
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _GlassTextField extends StatelessWidget {
   const _GlassTextField({

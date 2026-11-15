@@ -6,36 +6,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/interaction.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ReputationState
-// ═══════════════════════════════════════════════════════════════════════════
-
 class ReputationState {
-  /// Raw weighted peer score from all incoming ratings.
+
   final double peerScore;
 
-  /// CGPA normalised to 0–1 (cgpa / 10).
   final double normalizedCGPA;
 
-  /// Faculty-assigned score (0–1).
   final double teacherScore;
 
-  /// The "raw" reputation BEFORE smoothing is applied.
   final double calculatedReputation;
 
-  /// The final reputation score the user sees, after exponential smoothing.
   final double finalReputation;
 
-  /// How much of [finalReputation] comes from the PREVIOUS score (0.7).
   final double smoothingAnchor;
 
-  /// The user's credibility weight when they rate someone else.
   final double credibility;
 
-  /// Recent interactions (ratings) targeting this user.
   final List<Interaction> recentInteractions;
 
-  /// True while data is being fetched.
   final bool isLoading;
 
   const ReputationState({
@@ -75,31 +63,24 @@ class ReputationState {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ReputationNotifier
-// ═══════════════════════════════════════════════════════════════════════════
-
 class ReputationNotifier extends StateNotifier<ReputationState> {
   ReputationNotifier() : super(const ReputationState());
 
   StreamSubscription<DocumentSnapshot>? _userSub;
   StreamSubscription<QuerySnapshot>? _ratingsSub;
 
-  /// Resets the reputation state to defaults (used on sign-out).
   void reset() {
     _userSub?.cancel();
     _ratingsSub?.cancel();
     state = const ReputationState();
   }
 
-  /// Loads reputation data for [userId] via real-time Firestore streams.
   Future<void> loadReputation(String userId) async {
     state = state.copyWith(isLoading: true);
 
     _userSub?.cancel();
     _ratingsSub?.cancel();
 
-    // 1. Listen to user document for core stats
     _userSub = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -119,13 +100,11 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
           final peerScore = parseDouble(data['peer_score']);
           final finalRep = parseDouble(data['reputation']);
 
-          // Credibility Formula
           final credibility = ((0.6 * normalizedCGPA) + (0.4 * finalRep)).clamp(
             0.0,
             1.0,
           );
 
-          // Hybrid formula
           final calculated =
               (0.5 * peerScore) + (0.3 * normalizedCGPA) + (0.2 * teacherScore);
 
@@ -140,7 +119,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
           );
         });
 
-    // 2. Listen to recent ratings (last 20 for this user)
     _ratingsSub = FirebaseFirestore.instance
         .collection('ratings')
         .where('toUser', isEqualTo: userId)
@@ -156,9 +134,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         });
   }
 
-  // ═════════════════════════════════════════════════════════════════════
-  // submitRating — PRD §9 (System Flow: Submit a Rating)
-  // ═════════════════════════════════════════════════════════════════════
   Future<double> submitRating({
     required String fromUser,
     required String toUser,
@@ -171,14 +146,12 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final realFromUid = authUser.uid;
     final realFromName = authUser.displayName ?? 'Student';
 
-    // PRD Security: throw error if user tries to rate themselves
     if (realFromUid == toUser) {
       throw Exception("You cannot rate yourself.");
     }
 
     final firestore = FirebaseFirestore.instance;
 
-    // ── 3-day cooldown check per fromUser→toUser pair ─────────────────
     final lastRatingSnap = await firestore
         .collection('ratings')
         .where('fromUser', isEqualTo: realFromUid)
@@ -194,7 +167,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         final lastDate = (lastTimestamp as dynamic).toDate() as DateTime;
         final daysSince = DateTime.now().difference(lastDate).inDays;
         if (daysSince < 3) {
-          // Fetch target user name for the error message
+
           final targetDoc = await firestore
               .collection('users')
               .doc(toUser)
@@ -217,7 +190,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final targetDoc = await tx.get(targetUserRef);
       if (!targetDoc.exists) throw Exception("Target user not found.");
 
-      // Fetch rater's display name and credibility from their Firestore user document
       final raterDoc = await tx.get(raterUserRef);
       final raterData = raterDoc.data() ?? {};
       final raterName = (raterData['name'] as String?)?.isNotEmpty == true
@@ -229,11 +201,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final d = targetDoc.data()!;
       final oldRep = (d['reputation'] as num?)?.toDouble() ?? 0.0;
 
-      // Credibility-weighted rating
       final ratingValue0to1 = rating / 5.0;
       final weightedRating = ratingValue0to1 * raterCredibility;
 
-      // 1. Write the rating document
       tx.set(ratingDocRef, {
         'fromUser': realFromUid,
         'toUser': toUser,
@@ -248,7 +218,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         'fromName': raterName,
       });
 
-      // 2. Update target user stats
       final newRep = oldRep == 0
           ? weightedRating
           : (oldRep * 0.7) + (weightedRating * 0.3);
@@ -258,21 +227,16 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         'reputation': newRep,
       });
 
-      // 3. Update rater stats
       tx.update(raterUserRef, {'totalRatingsGiven': FieldValue.increment(1)});
 
       return raterCredibility;
     });
 
-    // 4. After transaction: recalculate peer score average from PEER ratings
     await _recalculatePeerScore(toUser);
 
     return appliedCredibility;
   }
 
-  // ═════════════════════════════════════════════════════════════════════
-  // penalizeStudent - Gavel Logic (Penalty)
-  // ═════════════════════════════════════════════════════════════════════
   Future<void> penalizeStudent({
     required String studentId,
     required String reportId,
@@ -281,7 +245,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final firestore = FirebaseFirestore.instance;
 
     await firestore.runTransaction((transaction) async {
-      // 1. Read the student document
+
       final userRef = firestore.collection('users').doc(studentId);
       final userSnap = await transaction.get(userRef);
 
@@ -293,21 +257,17 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final currentRep = (userData['reputation'] as num?)?.toDouble() ?? 0.0;
       final cgpa = (userData['cgpa_score'] as num?)?.toDouble() ?? 0.0;
 
-      // 2. Deduct reputation, floor at 0.0
       final newRep = (currentRep - penaltyAmount).clamp(0.0, 1.0);
 
-      // 3. Recalculate credibility: (0.6 × (cgpa/10.0)) + (0.4 × rep)
       final normalizedCgpa = cgpa / 10.0;
       final newCredibility =
           ((0.6 * normalizedCgpa) + (0.4 * newRep)).clamp(0.0, 1.0);
 
-      // 4. Update student document
       transaction.update(userRef, {
         'reputation': newRep,
         'credibility': newCredibility,
       });
 
-      // 5. Mark report as actioned/penalized
       final reportRef = firestore.collection('reports').doc(reportId);
       transaction.update(reportRef, {
         'status': 'resolved_penalized',
@@ -315,17 +275,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     });
   }
 
-  // ═════════════════════════════════════════════════════════════════════
-  // approveAchievement — Teacher-approved post boost
-  // ═════════════════════════════════════════════════════════════════════
-  //
-  // When a teacher approves an achievement post:
-  //   1. Mark the post as 'approved' in the posts collection
-  //   2. Atomically add +0.02 to the author's peer_score
-  //   3. Recalculate reputation and credibility
-  //
-  // The boost is flat (+0.02) and capped at 1.0 to prevent inflation.
-  // ═════════════════════════════════════════════════════════════════════
   Future<void> approveAchievement({
     required String postId,
     required String authorId,
@@ -334,7 +283,7 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     const double approvalBoost = 0.02;
 
     await firestore.runTransaction((transaction) async {
-      // 1. Read post document
+
       final postRef = firestore.collection('posts').doc(postId);
       final postSnap = await transaction.get(postRef);
 
@@ -347,7 +296,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
         throw Exception('This post has already been approved.');
       }
 
-      // 2. Read the author's user document
       final userRef = firestore.collection('users').doc(authorId);
       final userSnap = await transaction.get(userRef);
 
@@ -363,18 +311,15 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       final teacherScore =
           (userData['teacher_score'] as num?)?.toDouble() ?? 0.0;
 
-      // 3. Apply capped boost
       final newPeerScore =
           (currentPeerScore + approvalBoost).clamp(0.0, 1.0);
 
-      // 4. Recalculate reputation and credibility
       final normalizedCgpa = cgpa / 10.0;
       final totalReputation =
           (newPeerScore * 0.5) + (normalizedCgpa * 0.3) + (teacherScore * 0.2);
       final newCredibility =
           ((0.6 * normalizedCgpa) + (0.4 * totalReputation)).clamp(0.0, 1.0);
 
-      // 5. Write updates atomically
       transaction.update(postRef, {
         'status': 'approved',
         'approvedAt': FieldValue.serverTimestamp(),
@@ -388,9 +333,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     });
   }
 
-  // ═════════════════════════════════════════════════════════════════════
-  // submitTeacherRating
-  // ═════════════════════════════════════════════════════════════════════
   Future<void> submitTeacherRating({
     required String toUser,
     required int rating,
@@ -406,7 +348,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
     final firestore = FirebaseFirestore.instance;
 
-    // ── 7-day cooldown check for teacher ratings ────────────────────────
     final lastRatingSnap = await firestore
         .collection('ratings')
         .where('fromUser', isEqualTo: realFromUid)
@@ -441,7 +382,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
     final ratingValue0to1 = rating / 5.0;
 
-    // 1. Write the rating document as type 'teacher'
     await ratingDocRef.set({
       'fromUser': realFromUid,
       'toUser': toUser,
@@ -455,12 +395,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
       'fromName': realFromName,
     });
 
-    // 2. Recalculate teacher score
     await _recalculateTeacherScore(toUser);
   }
 
-  /// Calculates the average of ALL TEACHER ratings for [userId] and updates
-  /// `teacher_score` and `reputation` (total score) on their user document.
   Future<void> _recalculateTeacherScore(String userId) async {
     final firestore = FirebaseFirestore.instance;
 
@@ -492,11 +429,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final normalizedCGPA = parseDouble(userData['cgpa_score']) / 10.0;
     final peerScore = parseDouble(userData['peer_score']);
 
-    // Total Score: (peer_score * 0.5) + (cgpa_score * 0.3) + (teacher_score * 0.2)
     final totalReputation =
         (peerScore * 0.5) + (normalizedCGPA * 0.3) + (teacherScore * 0.2);
 
-    // Credibility: 0.6×cgpa + 0.4×totalRep
     final credibility = ((0.6 * normalizedCGPA) + (0.4 * totalReputation))
         .clamp(0.0, 1.0);
 
@@ -507,8 +442,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     });
   }
 
-  /// Calculates the average of ALL ratings for [userId] and updates
-  /// `peer_score` and `reputation` (total score) on their user document.
   Future<void> _recalculatePeerScore(String userId) async {
     final firestore = FirebaseFirestore.instance;
 
@@ -520,7 +453,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
     if (ratingsSnap.docs.isEmpty) return;
 
-    // Use weightedRating if available, fall back to raw rating / 5.0
     final allWeighted = ratingsSnap.docs.map((doc) {
       final data = doc.data();
       if (data.containsKey('weightedRating')) {
@@ -531,10 +463,8 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
 
     final average = allWeighted.reduce((a, b) => a + b) / allWeighted.length;
 
-    // weightedRating is already 0–1 scale
     final peerScore = average.clamp(0.0, 1.0);
 
-    // Fetch user doc to get cgpa_score and teacher_score for total calculation
     final userDoc = await firestore.collection('users').doc(userId).get();
     final userData = userDoc.data() ?? {};
 
@@ -547,11 +477,9 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
     final normalizedCGPA = parseDouble(userData['cgpa_score']) / 10.0;
     final teacherScore = parseDouble(userData['teacher_score']);
 
-    // Total Score: (peer_score * 0.5) + (cgpa_score * 0.3) + (teacher_score * 0.2)
     final totalReputation =
         (peerScore * 0.5) + (normalizedCGPA * 0.3) + (teacherScore * 0.2);
 
-    // Credibility: 0.6×cgpa + 0.4×totalRep
     final credibility = ((0.6 * normalizedCGPA) + (0.4 * totalReputation))
         .clamp(0.0, 1.0);
 
@@ -570,7 +498,6 @@ class ReputationNotifier extends StateNotifier<ReputationState> {
   }
 }
 
-/// ── Global provider ────────────────────────────────────────────────────────
 final reputationProvider =
     StateNotifierProvider<ReputationNotifier, ReputationState>(
       (ref) => ReputationNotifier(),

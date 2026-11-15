@@ -5,24 +5,9 @@ import '../theme/app_theme.dart';
 import '../widgets/animated_counter.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ReputationHeroCard — PRD §6 Step 2 (Hybrid Formula Visualisation)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// This is the top-most card on the Dashboard, showing:
-//   1. The FINAL REPUTATION (animated count-up via AnimatedCounter).
-//   2. A tier badge (High Standing / Moderate / Needs Improvement).
-//   3. A 3-column breakdown of the hybrid formula inputs:
-//        0.5 × peerScore  |  0.3 × normalizedCGPA  |  0.2 × teacherScore
-//
-// Extracted from HomeScreen so it can be reused on the Profile tab or
-// in any other context that needs a self-contained reputation display.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class ReputationHeroCard extends StatelessWidget {
   const ReputationHeroCard({super.key, required this.rep});
 
-  /// The current reputation state from [reputationProvider].
   final ReputationState rep;
 
   @override
@@ -33,7 +18,7 @@ class ReputationHeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spaceLg),
       child: Column(
         children: [
-          // ── Label ──────────────────────────────────────────────────
+
           Text(
             'REPUTATION SCORE',
             style: theme.textTheme.labelLarge?.copyWith(
@@ -44,7 +29,6 @@ class ReputationHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spaceSm),
 
-          // ── Animated score (counts up from 0 to finalReputation) ──
           AnimatedCounter(
             value: rep.finalReputation,
             fractionDigits: 2,
@@ -57,7 +41,6 @@ class ReputationHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spaceSm),
 
-          // ── Tier badge ─────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
@@ -76,7 +59,6 @@ class ReputationHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spaceLg),
 
-          // ── Breakdown row (Peer / CGPA / Teacher) ──────────────────
           Wrap(
             alignment: WrapAlignment.spaceEvenly,
             spacing: AppTheme.spaceMd,
@@ -107,15 +89,12 @@ class ReputationHeroCard extends StatelessWidget {
     );
   }
 
-  /// Human-readable tier label (PRD §6 Tier System).
   String _tierLabel(double score) {
     if (score >= 0.75) return '★ High Standing';
     if (score >= 0.40) return '● Moderate';
     return '▽ Needs Improvement';
   }
 }
-
-// ── _MiniStat — compact column for each formula input ───────────────────────
 
 class _MiniStat extends StatelessWidget {
   const _MiniStat({

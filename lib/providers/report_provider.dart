@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/report_service.dart';
 
-/// State of the report submission process.
 enum ReportStatus { initial, loading, success, error }
 
 class ReportState {

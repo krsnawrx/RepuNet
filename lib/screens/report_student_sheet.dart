@@ -5,17 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/report_provider.dart';
 import '../theme/app_theme.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ReportStudentSheet — Senior UI/UX Architecture
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Features:
-//   1. Dark Glassmorphism via BackdropFilter.
-//   2. High-legibility Reason Chips (Black text on light background).
-//   3. Managed Firestore integration via Riverpod.
-//   4. Haptic feedback on interactions.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class ReportStudentSheet extends ConsumerStatefulWidget {
   final String reportedUid;
   final String reportedName;
@@ -53,7 +42,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
     final reportState = ref.watch(reportProvider);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    // Listen for success state to close and signal feedback
     ref.listen(reportProvider, (previous, next) {
       if (next.status == ReportStatus.success) {
         Navigator.pop(context);
@@ -110,7 +98,7 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ── Drag Handle ──────────────────────────────────────
+
                 Container(
                   width: 36,
                   height: 4,
@@ -121,7 +109,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── 1. Circular Flag Icon (Blurred Purple Circle) ─────
                 Container(
                   width: 64,
                   height: 64,
@@ -151,7 +138,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── 2. Typography ────────────────────────────────────
                 Text(
                   'Report Student',
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -170,7 +156,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── 3. The Fix: Legible Reason Chips ──────────────────
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -186,8 +171,7 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                           setState(() => _selectedReason = reason);
                         }
                       },
-                      // STYLE: Unselected = Light/White, Text = Black
-                      //        Selected = Purple/Accent
+
                       backgroundColor: Colors.white.withValues(alpha: 0.9),
                       selectedColor: Colors.deepPurpleAccent,
                       labelStyle: TextStyle(
@@ -214,7 +198,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── 4. Text Field ────────────────────────────────────
                 TextField(
                   controller: _detailsController,
                   maxLines: 4,
@@ -246,7 +229,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── 5. Submit Button ─────────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -304,10 +286,6 @@ class _ReportStudentSheetState extends ConsumerState<ReportStudentSheet> {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Helper: Show Function
-// ═══════════════════════════════════════════════════════════════════════════
 
 void showReportStudentSheet(
   BuildContext context, {

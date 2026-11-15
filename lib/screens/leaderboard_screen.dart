@@ -7,23 +7,6 @@ import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 import 'student_profile_screen.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LeaderboardScreen — Real-Time Reputation Rankings
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Streams the `users` collection ordered by `reputation` DESC.
-// Filters out teachers (role == 'teacher').
-//
-// Tier System:
-//   0.0–0.2  Newcomer      (Grey)
-//   0.2–0.4  Rising Star   (#448AFF Blue)
-//   0.4–0.6  Trusted Peer  (#00E676 Green)
-//   0.6–0.8  Community Pillar (#AA00FF Purple)
-//   0.8–1.0  Elite         (#FFC107 Gold)
-//
-// Top 3 positions get Gold / Silver / Bronze medal icons.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class LeaderboardScreen extends ConsumerWidget {
   const LeaderboardScreen({super.key});
 
@@ -50,7 +33,7 @@ class LeaderboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──────────────────────────────────────────────────
+
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppTheme.spaceLg,
@@ -82,7 +65,6 @@ class LeaderboardScreen extends ConsumerWidget {
 
               const SizedBox(height: AppTheme.spaceSm),
 
-              // ── Leaderboard list ────────────────────────────────────────
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -111,7 +93,6 @@ class LeaderboardScreen extends ConsumerWidget {
 
                     final docs = snapshot.data?.docs ?? [];
 
-                    // Filter out teachers
                     final students = docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return data['role'] != 'teacher';
@@ -143,16 +124,14 @@ class LeaderboardScreen extends ConsumerWidget {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppTheme.spaceMd,
-                      ).copyWith(bottom: 100), // clear BottomAppBar
+                      ).copyWith(bottom: 100),
                       itemCount: students.length,
                       itemBuilder: (context, index) {
                         final doc = students[index];
                         final data = doc.data() as Map<String, dynamic>;
                         final uid = doc.id;
-                        final name =
-                            (data['name'] ?? 'Unknown').toString();
-                        final username =
-                            (data['username'] ?? '').toString();
+                        final name = (data['name'] ?? 'Unknown').toString();
+                        final username = (data['username'] ?? '').toString();
                         final reputation =
                             (data['reputation'] as num?)?.toDouble() ?? 0.0;
                         final rank = index + 1;
@@ -178,10 +157,6 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _LeaderboardTile — Individual ranking row
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _LeaderboardTile extends StatelessWidget {
   const _LeaderboardTile({
@@ -221,14 +196,10 @@ class _LeaderboardTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 4),
         child: Row(
           children: [
-            // ── Rank indicator (medal or number) ────────────────────
-            SizedBox(
-              width: 36,
-              child: _buildRankWidget(context),
-            ),
+
+            SizedBox(width: 36, child: _buildRankWidget(context)),
             const SizedBox(width: AppTheme.spaceSm),
 
-            // ── Avatar ──────────────────────────────────────────────
             Container(
               width: 42,
               height: 42,
@@ -253,7 +224,6 @@ class _LeaderboardTile extends StatelessWidget {
             ),
             const SizedBox(width: AppTheme.spaceMd),
 
-            // ── Name + username ─────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,8 +252,9 @@ class _LeaderboardTile extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: AppTheme.accent.withValues(alpha: 0.2),
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusSm,
+                            ),
                           ),
                           child: Text(
                             'YOU',
@@ -313,11 +284,10 @@ class _LeaderboardTile extends StatelessWidget {
 
             const SizedBox(width: AppTheme.spaceSm),
 
-            // ── Score + Tier badge ───────────────────────────────────
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Score
+
                 Text(
                   reputation.toStringAsFixed(2),
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -327,7 +297,7 @@ class _LeaderboardTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                // Tier badge
+
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -355,7 +325,6 @@ class _LeaderboardTile extends StatelessWidget {
     );
   }
 
-  /// Builds medal icons for top 3, numeric rank for others.
   Widget _buildRankWidget(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -364,13 +333,13 @@ class _LeaderboardTile extends StatelessWidget {
       final Color medalColor;
       switch (rank) {
         case 1:
-          medalColor = const Color(0xFFFFC107); // Gold
+          medalColor = const Color(0xFFFFC107);
           break;
         case 2:
-          medalColor = const Color(0xFFB0BEC5); // Silver
+          medalColor = const Color(0xFFB0BEC5);
           break;
         case 3:
-          medalColor = const Color(0xFFCD7F32); // Bronze
+          medalColor = const Color(0xFFCD7F32);
           break;
         default:
           medalColor = Colors.white38;
@@ -412,50 +381,25 @@ class _LeaderboardTile extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// _TierInfo — Maps reputation score to tier label + colour
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _TierInfo {
   final String label;
   final Color color;
 
   const _TierInfo({required this.label, required this.color});
 
-  /// Tier thresholds per spec:
-  ///   0.0–0.2: Newcomer (Grey)
-  ///   0.2–0.4: Rising Star (#448AFF Blue)
-  ///   0.4–0.6: Trusted Peer (#00E676 Green)
-  ///   0.6–0.8: Community Pillar (#AA00FF Purple)
-  ///   0.8–1.0: Elite (#FFC107 Gold)
   factory _TierInfo.fromScore(double score) {
     if (score >= 0.8) {
-      return const _TierInfo(
-        label: 'ELITE',
-        color: Color(0xFFFFC107),
-      );
+      return const _TierInfo(label: 'ELITE', color: Color(0xFFFFC107));
     }
     if (score >= 0.6) {
-      return const _TierInfo(
-        label: 'PILLAR',
-        color: Color(0xFFAA00FF),
-      );
+      return const _TierInfo(label: 'PILLAR', color: Color(0xFFAA00FF));
     }
     if (score >= 0.4) {
-      return const _TierInfo(
-        label: 'TRUSTED',
-        color: Color(0xFF00E676),
-      );
+      return const _TierInfo(label: 'TRUSTED', color: Color(0xFF00E676));
     }
     if (score >= 0.2) {
-      return const _TierInfo(
-        label: 'RISING',
-        color: Color(0xFF448AFF),
-      );
+      return const _TierInfo(label: 'RISING', color: Color(0xFF448AFF));
     }
-    return _TierInfo(
-      label: 'NEW',
-      color: Colors.grey.shade500,
-    );
+    return _TierInfo(label: 'NEW', color: Colors.grey.shade500);
   }
 }

@@ -10,7 +10,6 @@ import '../providers/reputation_provider.dart';
 import '../theme/app_theme.dart';
 import 'edit_profile_screen.dart';
 
-/// Profile tab — user info, reputation breakdown pie chart, and details.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -30,7 +29,7 @@ class ProfileScreen extends ConsumerWidget {
           .doc(uid)
           .snapshots(),
       builder: (context, snap) {
-        // Helper to parse numbers robustly
+
         double parseDouble(dynamic val) {
           if (val is num) return val.toDouble();
           if (val is String) return double.tryParse(val) ?? 0.0;
@@ -49,8 +48,6 @@ class ProfileScreen extends ConsumerWidget {
 
         final normalizedCGPA = cgpa / 10.0;
 
-        // Total Score formula requested:
-        // (peer_score * 0.5) + (cgpa_score * 0.3) + (teacher_score * 0.2)
         final totalScore =
             (peerScore * 0.5) + (normalizedCGPA * 0.3) + (teacherScore * 0.2);
 
@@ -71,7 +68,7 @@ class ProfileScreen extends ConsumerWidget {
         return Scaffold(
           body: CustomScrollView(
             slivers: [
-              // ── Profile Header ──────────────────────────────────────────
+
               SliverAppBar(
                 expandedHeight: 180,
                 pinned: true,
@@ -103,7 +100,7 @@ class ProfileScreen extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(height: AppTheme.spaceLg),
-                            // Avatar
+
                             Container(
                               width: 72,
                               height: 72,
@@ -148,18 +145,16 @@ class ProfileScreen extends ConsumerWidget {
                 title: const Text('Profile'),
               ),
 
-              // ── Body ────────────────────────────────────────────────────
               SliverPadding(
                 padding: const EdgeInsets.all(AppTheme.spaceMd).copyWith(
-                  bottom: 100, // extra padding to clear the BottomAppBar
+                  bottom: 100,
                 ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // ── Reputation Score ──────────────────────────────────
+
                     _ScoreCard(reputation: totalScore),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // ── Pie Chart ─────────────────────────────────────────
                     Text(
                       'Reputation Breakdown',
                       style: theme.textTheme.titleMedium,
@@ -168,7 +163,6 @@ class ProfileScreen extends ConsumerWidget {
                     _ReputationPieChart(rep: rep),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // ── Score Details (Collapsible ExpansionTile) ────────
                     Card(
                       child: ExpansionTile(
                         initiallyExpanded: true,
@@ -213,7 +207,6 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
 
-                    // ── Credibility & Protections (Collapsible) ───────────
                     Card(
                       child: ExpansionTile(
                         leading: const Icon(
@@ -264,7 +257,6 @@ class ProfileScreen extends ConsumerWidget {
 
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // ── Account Info ──────────────────────────────────────
                     Text('Account', style: theme.textTheme.titleMedium),
                     const SizedBox(height: AppTheme.spaceSm),
                     Card(
@@ -302,7 +294,6 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppTheme.spaceLg),
 
-                    // ── Logout Button ─────────────────────────────────────
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -325,7 +316,6 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
 
-                    // ── Delete Account Button ────────────────────────────
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -351,8 +341,8 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
         );
-      }, // closes StreamBuilder builder
-    ); // closes StreamBuilder
+      },
+    );
   }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
@@ -369,7 +359,7 @@ class ProfileScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon
+
               Container(
                 width: 56,
                 height: 56,
@@ -385,7 +375,6 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.spaceMd),
 
-              // Title
               const Text(
                 'Sign Out?',
                 style: TextStyle(
@@ -396,7 +385,6 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.spaceSm),
 
-              // Content
               Text(
                 'Are you sure you want to log out of RepuNet?',
                 textAlign: TextAlign.center,
@@ -407,10 +395,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.spaceLg),
 
-              // Actions
               Row(
                 children: [
-                  // Cancel
+
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(ctx).pop(),
@@ -431,7 +418,6 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppTheme.spaceMd),
 
-                  // Sign Out
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -502,8 +488,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-// ── Score card at top of profile ────────────────────────────────────────────
-
 class _ScoreCard extends StatelessWidget {
   const _ScoreCard({required this.reputation});
   final double reputation;
@@ -517,7 +501,7 @@ class _ScoreCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppTheme.spaceLg),
         child: Row(
           children: [
-            // Circular gauge
+
             SizedBox(
               width: 72,
               height: 72,
@@ -579,8 +563,6 @@ class _ScoreCard extends StatelessWidget {
   }
 }
 
-// ── Circular gauge painter ──────────────────────────────────────────────────
-
 class _GaugePainter extends CustomPainter {
   _GaugePainter({required this.value, required this.color});
   final double value;
@@ -593,7 +575,6 @@ class _GaugePainter extends CustomPainter {
     const startAngle = -math.pi / 2;
     final sweepAngle = 2 * math.pi * value.clamp(0.0, 1.0);
 
-    // Background track
     canvas.drawCircle(
       center,
       radius,
@@ -603,7 +584,6 @@ class _GaugePainter extends CustomPainter {
         ..strokeWidth = 6,
     );
 
-    // Value arc
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       startAngle,
@@ -622,8 +602,6 @@ class _GaugePainter extends CustomPainter {
       old.value != value || old.color != color;
 }
 
-// ── Pie chart showing the 0.5 / 0.3 / 0.2 weight distribution ──────────────
-
 class _ReputationPieChart extends StatefulWidget {
   const _ReputationPieChart({required this.rep});
   final ReputationState rep;
@@ -640,7 +618,6 @@ class _ReputationPieChartState extends State<_ReputationPieChart> {
     final rep = widget.rep;
     final theme = Theme.of(context);
 
-    // Weighted contributions (for pie sizing)
     final peerContrib = rep.peerScore * 0.5;
     final cgpaContrib = rep.normalizedCGPA * 0.3;
     final teacherContrib = rep.teacherScore * 0.2;
@@ -697,7 +674,6 @@ class _ReputationPieChartState extends State<_ReputationPieChart> {
             ),
             const SizedBox(height: AppTheme.spaceMd),
 
-            // Legend
             Wrap(
               alignment: WrapAlignment.spaceEvenly,
               spacing: AppTheme.spaceMd,
@@ -760,8 +736,6 @@ class _ReputationPieChartState extends State<_ReputationPieChart> {
   }
 }
 
-// ── Legend dot ──────────────────────────────────────────────────────────────
-
 class _LegendDot extends StatelessWidget {
   const _LegendDot({
     required this.color,
@@ -801,8 +775,6 @@ class _LegendDot extends StatelessWidget {
     );
   }
 }
-
-// ── Detail row (raw score × weight = contribution) ─────────────────────────
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({
@@ -863,8 +835,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-// ── Key-value row ──────────────────────────────────────────────────────────
-
 class _KeyValue extends StatelessWidget {
   const _KeyValue({
     required this.label,
@@ -901,8 +871,6 @@ class _KeyValue extends StatelessWidget {
   }
 }
 
-// ── Delete Account Dialog Content (StatefulWidget for loading state) ─────
-
 class _DeleteAccountDialogContent extends StatefulWidget {
   const _DeleteAccountDialogContent({
     required this.parentContext,
@@ -926,8 +894,8 @@ class _DeleteAccountDialogContentState
       widget.ref.read(reputationProvider.notifier).reset();
       await widget.ref.read(authServiceProvider).deleteAccount();
       if (!mounted) return;
-      Navigator.of(context).pop(); // close dialog
-      // Auth state change will automatically navigate to LoginScreen
+      Navigator.of(context).pop();
+
     } catch (e) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
@@ -948,7 +916,7 @@ class _DeleteAccountDialogContentState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon
+
           Container(
             width: 56,
             height: 56,
@@ -964,7 +932,6 @@ class _DeleteAccountDialogContentState
           ),
           const SizedBox(height: AppTheme.spaceMd),
 
-          // Title
           const Text(
             'Delete Account?',
             style: TextStyle(
@@ -975,7 +942,6 @@ class _DeleteAccountDialogContentState
           ),
           const SizedBox(height: AppTheme.spaceSm),
 
-          // Warning message
           Text(
             'This will permanently delete your account and all your ratings. '
             'This cannot be undone.',
@@ -993,10 +959,10 @@ class _DeleteAccountDialogContentState
               child: CircularProgressIndicator(color: AppTheme.error),
             )
           else
-            // Actions
+
             Row(
               children: [
-                // Cancel
+
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -1015,7 +981,6 @@ class _DeleteAccountDialogContentState
                 ),
                 const SizedBox(width: AppTheme.spaceMd),
 
-                // Delete
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _deleteAccount,

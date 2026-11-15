@@ -4,20 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/achievement_post.dart';
 import '../services/post_service.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Post Provider — Riverpod state management for Achievement Posts
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// Singleton PostService instance.
 final postServiceProvider = Provider<PostService>((ref) {
   return PostService();
 });
 
-/// Real-time stream of all achievement posts, sorted by timestamp descending.
-///
-/// Sorts locally to avoid requiring a Firestore composite index.
-/// Wraps parsing in try-catch per document to prevent a single malformed
-/// doc from crashing the entire stream (e.g. pending server timestamp).
 final postsStreamProvider = StreamProvider<List<AchievementPost>>((ref) {
   return FirebaseFirestore.instance
       .collection('posts')
@@ -27,17 +17,15 @@ final postsStreamProvider = StreamProvider<List<AchievementPost>>((ref) {
 
     for (final doc in snapshot.docs) {
       try {
-        // Skip documents still pending server timestamp confirmation
-        // (hasPendingWrites = true AND timestamp = null)
+
         final data = doc.data();
         if (doc.metadata.hasPendingWrites && data['timestamp'] == null) {
           continue;
         }
         posts.add(AchievementPost.fromMap(doc.id, data));
       } catch (e) {
-        // Log but don't crash the stream — lets the rest of the feed load
-        // ignore: avoid_print
-        print('⚠️ PostsFeed: Skipping doc ${doc.id} — $e');
+
+        print('doc skip: $e');
       }
     }
 
@@ -46,16 +34,12 @@ final postsStreamProvider = StreamProvider<List<AchievementPost>>((ref) {
           a.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
       final timeB =
           b.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return timeB.compareTo(timeA); // Newest first
+      return timeB.compareTo(timeA);
     });
 
     return posts;
   });
 });
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PostActionNotifier — handles create & upvote with loading/error states
-// ═══════════════════════════════════════════════════════════════════════════
 
 enum PostActionStatus { idle, loading, success, error }
 

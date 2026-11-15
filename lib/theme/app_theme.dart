@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// RepuNet Lite design system.
-///
-/// Deep-navy & white academic aesthetic with high contrast,
-/// subtle surface tints, and modern typography (Inter).
 class AppTheme {
   AppTheme._();
 
-  // ── Brand Palette ──────────────────────────────────────────────────────
   static const Color navy = Color(0xFF0A1128);
   static const Color navyLight = Color(0xFF1B2845);
   static const Color navyMedium = Color(0xFF274060);
-  static const Color accent = Color(0xFF3A86FF); // vivid blue accent
+  static const Color accent = Color(0xFF3A86FF);
   static const Color accentLight = Color(0xFF78AEFF);
   static const Color surface = Color(0xFFF5F7FA);
   static const Color white = Colors.white;
@@ -22,31 +17,26 @@ class AppTheme {
   static const Color warning = Color(0xFFFFD166);
   static const Color error = Color(0xFFEF476F);
 
-  // ── Reputation tier colours ────────────────────────────────────────────
-  static const Color repHigh = Color(0xFF06D6A0); // ≥ 0.75
-  static const Color repMid = Color(0xFFFFD166); // 0.40 – 0.74
-  static const Color repLow = Color(0xFFEF476F); // < 0.40
+  static const Color repHigh = Color(0xFF06D6A0);
+  static const Color repMid = Color(0xFFFFD166);
+  static const Color repLow = Color(0xFFEF476F);
 
-  /// Returns the reputation tier colour for a normalised score (0–1).
   static Color reputationColor(double score) {
     if (score >= 0.75) return repHigh;
     if (score >= 0.40) return repMid;
     return repLow;
   }
 
-  // ── Border Radii ───────────────────────────────────────────────────────
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 20;
   static const double radiusXl = 28;
 
-  // ── Spacing ────────────────────────────────────────────────────────────
   static const double spaceSm = 8;
   static const double spaceMd = 16;
   static const double spaceLg = 24;
   static const double spaceXl = 32;
 
-  // ── Light Theme ────────────────────────────────────────────────────────
   static ThemeData get light {
     final base = ThemeData.light(useMaterial3: true);
     final textTheme = GoogleFonts.interTextTheme(base.textTheme);

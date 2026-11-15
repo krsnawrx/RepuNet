@@ -12,8 +12,6 @@ val newBuildDir: Directory =
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
-    // Redirect only plugin subprojects (not :app) to C: drive
-    // to avoid the "different roots" error with Pub Cache on C:.
     if (project.name != "app") {
         val pluginBuildDir = File("C:/tmp/RepuNet/build/${project.name}")
         project.layout.buildDirectory.set(pluginBuildDir)

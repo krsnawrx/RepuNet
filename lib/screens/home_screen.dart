@@ -12,24 +12,12 @@ import '../widgets/reputation_hero_card.dart';
 import '../widgets/stability_module.dart';
 import 'posts_feed_screen.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HomeScreen — Glassmorphic Dashboard (Direct Firestore StreamBuilder)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Uses direct Firestore StreamBuilders rather than the Riverpod provider
-// to guarantee data loads correctly regardless of auth timing.
-//
-// Two streams run in parallel:
-//   1. users/{uid} — core fields: reputation, peerScore, cgpa, teacherScore
-//   2. ratings (toUser == uid, last 5) — recent ratings feed
-// ═══════════════════════════════════════════════════════════════════════════
-
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // authStateProvider is guaranteed resolved (AppShell only renders when user != null)
+
     final authAsync = ref.watch(authStateProvider);
     final uid = authAsync.valueOrNull?.uid;
     final theme = Theme.of(context);
@@ -61,21 +49,19 @@ class HomeScreen extends ConsumerWidget {
                 .doc(uid)
                 .snapshots(),
             builder: (context, userSnap) {
-              // Helper to parse numbers robustly in case Firestore has Strings
+
               double parseDouble(dynamic val) {
                 if (val is num) return val.toDouble();
                 if (val is String) return double.tryParse(val) ?? 0.0;
                 return 0.0;
               }
 
-              // ── Loading / error guards ──────────────────────────────────
               if (userSnap.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppTheme.accent),
                 );
               }
 
-              // Pull fields from Firestore doc (all default to 0 if missing)
               final data =
                   (userSnap.data?.data() as Map<String, dynamic>?) ?? {};
               final userName = (data['name'] as String?) ?? 'Student';
@@ -85,16 +71,11 @@ class HomeScreen extends ConsumerWidget {
 
               final normalizedCGPA = cgpa / 10.0;
 
-              // Total Score formula requested:
-              // (peer_score * 0.5) + (cgpa_score * 0.3) + (teacher_score * 0.2)
-              // NOTE: using raw cgpa instead of normalized for cgpa_score, as per standard user request mapping
-              // Wait, the prompt says "cgpa_score", but earlier it's "cgpa / 10" which is normalized. Let's stick with normalized.
               final totalScore =
                   (peerScore * 0.5) +
                   (normalizedCGPA * 0.3) +
                   (teacherScore * 0.2);
 
-              // Credibility: 0.6×cgpa + 0.4×rep
               final credibility = ((0.6 * normalizedCGPA) + (0.4 * totalScore))
                   .clamp(0.0, 1.0);
 
@@ -104,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                 teacherScore: teacherScore,
                 calculatedReputation: totalScore,
                 finalReputation:
-                    totalScore, // Map the Top Meter directly to Total Score
+                    totalScore,
                 smoothingAnchor: 0.7,
                 credibility: credibility,
               );
@@ -112,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  // ── SliverAppBar ──────────────────────────────────────
+
                   SliverAppBar(
                     expandedHeight: 100,
                     backgroundColor: Colors.transparent,
@@ -146,27 +127,23 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // ── Body widgets ──────────────────────────────────────
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.spaceMd,
                     ).copyWith(bottom: 100),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // Layer 1: Reputation score + tier + breakdown
+
                         ReputationHeroCard(rep: repState),
 
-                        // Layer 2: Smoothing bar + credibility + stats
                         StabilityModule(rep: repState),
 
                         const SizedBox(height: AppTheme.spaceSm),
 
-                        // Layer 3: Recent ratings feed (last 3)
                         _RatingsStreamFeed(uid: uid),
 
                         const SizedBox(height: AppTheme.spaceSm),
 
-                        // Layer 4: Achievement Posts — navigate to feed
                         _AchievementsBanner(),
                       ]),
                     ),
@@ -180,10 +157,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _RatingsStreamFeed — streams last 3 ratings directly from Firestore
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _RatingsStreamFeed extends StatelessWidget {
   const _RatingsStreamFeed({required this.uid});
@@ -224,10 +197,6 @@ class _RatingsStreamFeed extends StatelessWidget {
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _AchievementsBanner — navigable entry point to Posts Feed
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _AchievementsBanner extends StatelessWidget {
   const _AchievementsBanner();

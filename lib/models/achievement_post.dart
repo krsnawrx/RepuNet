@@ -1,24 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AchievementPost Model
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Maps to the Firestore `posts` collection:
-//
-//   id            : auto-generated doc ID
-//   authorId      : uid of the poster
-//   authorName    : display name of the poster (denormalized for feed perf)
-//   title         : short achievement headline
-//   description   : full description / context
-//   category      : one of Hackathon | Project | Research | Certification
-//   timestamp     : server timestamp
-//   upvoters      : List<String> of UIDs who credibility-upvoted
-//   weightedScore : cumulative sum of each upvoter's credibility weight
-//
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// The four recognized achievement categories.
 enum PostCategory {
   hackathon('Hackathon'),
   project('Project'),
@@ -28,7 +9,6 @@ enum PostCategory {
   const PostCategory(this.label);
   final String label;
 
-  /// Parses a Firestore string back into an enum value.
   static PostCategory fromString(String? value) {
     return PostCategory.values.firstWhere(
       (e) => e.label.toLowerCase() == (value ?? '').toLowerCase(),
@@ -60,7 +40,6 @@ class AchievementPost {
     this.weightedScore = 0.0,
   });
 
-  /// Factory to create an [AchievementPost] from a Firestore document map.
   factory AchievementPost.fromMap(String id, Map<String, dynamic> data) {
     return AchievementPost(
       id: id,
@@ -75,7 +54,6 @@ class AchievementPost {
     );
   }
 
-  /// Converts to a Firestore-compatible map for writes.
   Map<String, dynamic> toMap() {
     return {
       'authorId': authorId,
@@ -89,6 +67,5 @@ class AchievementPost {
     };
   }
 
-  /// Whether a given UID has already upvoted this post.
   bool hasUpvoted(String uid) => upvoters.contains(uid);
 }

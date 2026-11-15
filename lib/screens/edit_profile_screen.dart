@@ -99,7 +99,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         });
       }
     } catch (e) {
-      // Ignore cleanly
+
     } finally {
       if (mounted) setState(() => _isLoadingData = false);
     }
@@ -239,7 +239,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Display Name
+
                     _buildTextField(
                       controller: _nameController,
                       label: 'Display Name',
@@ -247,7 +247,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // Bio
                     _buildTextField(
                       controller: _bioController,
                       label: 'Bio',
@@ -256,7 +255,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // Course
                     _buildDropdownField(
                       label: 'Course',
                       value: _selectedCourse,
@@ -272,7 +270,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // Year
                     _buildDropdownField(
                       label: 'Year',
                       value: _selectedYear,
@@ -289,7 +286,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // Branch
                     _buildDropdownField(
                       label: 'Branch / Major',
                       value: _selectedBranch,
@@ -305,7 +301,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
 
-                    // Skills
                     _buildTextField(
                       controller: _skillsController,
                       label: 'Skills',

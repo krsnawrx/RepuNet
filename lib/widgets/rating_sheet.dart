@@ -11,39 +11,6 @@ import '../providers/reputation_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Rating Bottom Sheet — PRD §9 (System Flow: Submit a Rating)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// A glassmorphic modal bottom sheet triggered by the centre-docked FAB.
-//
-// Flow:
-//   1. User SEARCHES for a student by name (text field with filtering).
-//   2. User taps a student tile to select them.
-//   3. User taps 1–5 stars to set the peer rating.
-//   4. User presses "Submit Rating".
-//   5. The [submitRating] method on [ReputationNotifier]:
-//      a. Records the interaction.
-//      b. Recalculates reputation via hybrid formula (PRD §6 Step 2).
-//      c. Applies smoothing: new = old×0.7 + calc×0.3 (PRD §6 Step 3).
-//      d. Re-derives credibility with influence cap (CLAUDE.md).
-//   6. Haptic feedback confirms success (HapticFeedback.lightImpact).
-//   7. Sheet closes automatically.
-//
-// Guards (PRD §7 — Manipulation Protections):
-//   • SELF-RATING:  The current user cannot rate themselves.
-//   • DUPLICATE:    A user can only rate another user once (one rating
-//                   per fromUser→toUser pair).
-//
-// Entry point:
-//   showRatingSheet(context);
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// Opens the glassmorphic rating bottom sheet.
-///
-/// If [preselectedName] and [preselectedUid] are provided, the sheet
-/// skips the student search step and goes directly to star selection.
-/// This is used when tapping the "Rate" button on a specific student tile.
 void showRatingSheet(
   BuildContext context, {
   String? preselectedName,
@@ -60,8 +27,6 @@ void showRatingSheet(
   );
 }
 
-// ── Placeholder student model for the sheet ─────────────────────────────────
-
 class _StudentEntry {
   final String uid;
   final String name;
@@ -73,7 +38,6 @@ class _StudentEntry {
 class _RatingSheetContent extends ConsumerStatefulWidget {
   const _RatingSheetContent({this.preselectedName, this.preselectedUid});
 
-  /// If provided, skips the search step and pre-selects this student.
   final String? preselectedName;
   final String? preselectedUid;
 
@@ -83,7 +47,7 @@ class _RatingSheetContent extends ConsumerStatefulWidget {
 }
 
 class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
-  // ── State ───────────────────────────────────────────────────────────────
+
   final _searchController = TextEditingController();
   final _commentController = TextEditingController();
   String _searchQuery = '';
@@ -94,20 +58,16 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
   @override
   void initState() {
     super.initState();
-    // If opened from a search tile with a specific student, pre-select them.
+
     if (widget.preselectedName != null && widget.preselectedUid != null) {
       _selectedStudent = _StudentEntry(
         widget.preselectedUid!,
         widget.preselectedName!,
-        0, // CGPA not needed for pre-selected — rating only
+        0,
       );
     }
   }
 
-  /// Checks if the current user has already rated the selected student.
-  ///
-  /// PRD §7 Protection #1: "One rating per pair — a user can only
-  /// rate another user once."
   bool get _isDuplicateRating {
     if (_selectedStudent == null) return false;
     final interactions = ref.read(reputationProvider).recentInteractions;
@@ -119,20 +79,12 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
     );
   }
 
-  /// Determines if the submit button should be enabled.
-  ///
-  /// Disabled when:
-  ///   • No student selected
-  ///   • No star rating chosen
-  ///   • Duplicate rating exists (PRD §7.1)
-  ///   • Already submitting
   bool get _canSubmit =>
       _selectedStudent != null &&
       _rating > 0 &&
       !_isDuplicateRating &&
       !_isSubmitting;
 
-  /// Status message shown below the submit button when disabled.
   String? get _guardMessage {
     if (_isDuplicateRating) {
       return 'You have already rated ${_selectedStudent!.name}.';
@@ -147,7 +99,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
     super.dispose();
   }
 
-  // ── Submit handler ──────────────────────────────────────────────────────
   Future<void> _submit() async {
     if (!_canSubmit) return;
 
@@ -157,8 +108,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
       final currentUser = ref.read(authServiceProvider).currentUser;
       final fromUid = currentUser?.uid ?? 'current_user';
 
-      // Call the reputation engine's submit logic.
-      // This applies the hybrid formula + smoothing in one step.
       final appliedCredibility = await ref
           .read(reputationProvider.notifier)
           .submitRating(
@@ -168,14 +117,11 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
             comment: _commentController.text.trim(),
           );
 
-      // ── Haptic Feedback (PRD §9: success confirmation) ────────────
       await HapticFeedback.lightImpact();
 
       if (mounted) {
         Navigator.of(context).pop();
-        // ── Impact Toast (PRD §9) ─────────────────────────────────
-        // Shows the rater's credibility so they understand how much
-        // influence their rating carried.
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -211,11 +157,11 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
     final currentUid = currentUser?.uid ?? '';
 
     return Container(
-      // Constrain height to 85% of screen
+
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      // ── Frosted-glass background ──────────────────────────────────
+
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusXl),
@@ -244,7 +190,7 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ── Drag handle ────────────────────────────────────────
+
                 Container(
                   width: 40,
                   height: 4,
@@ -255,7 +201,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                 ),
                 const SizedBox(height: AppTheme.spaceLg),
 
-                // ── Title ──────────────────────────────────────────────
                 Text(
                   'Rate a Student',
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -273,9 +218,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
-                // ══════════════════════════════════════════════════════
-                // SEARCH BAR — find student by name
-                // ══════════════════════════════════════════════════════
                 TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _searchQuery = v),
@@ -321,10 +263,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                 ),
                 const SizedBox(height: AppTheme.spaceSm),
 
-                // ══════════════════════════════════════════════════════
-                // STUDENT LIST — tap to select (Firestore real-time)
-                // ══════════════════════════════════════════════════════
-                // Self is excluded from this list automatically.
                 if (_selectedStudent == null) ...[
                   SizedBox(
                     height: 180,
@@ -345,7 +283,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
 
                         final docs = snapshot.data?.docs ?? [];
 
-                        // Self-filter + search query filter
                         final filtered = docs.where((doc) {
                           if (doc.id == currentUid) return false;
                           if (_searchQuery.isEmpty) return true;
@@ -395,7 +332,7 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                     ),
                   ),
                 ] else ...[
-                  // ── Selected student chip ────────────────────────────
+
                   GlassmorphicCard(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.spaceMd,
@@ -405,7 +342,7 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                     margin: EdgeInsets.zero,
                     child: Row(
                       children: [
-                        // Avatar
+
                         Container(
                           width: 36,
                           height: 36,
@@ -446,7 +383,7 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                             ],
                           ),
                         ),
-                        // Change selection button
+
                         IconButton(
                           icon: const Icon(
                             Icons.close_rounded,
@@ -466,9 +403,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
 
                 const SizedBox(height: AppTheme.spaceMd),
 
-                // ══════════════════════════════════════════════════════
-                // STAR RATING — 1 to 5 stars
-                // ══════════════════════════════════════════════════════
                 if (_selectedStudent != null) ...[
                   Text(
                     'Peer Score',
@@ -517,9 +451,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                   ],
                   const SizedBox(height: AppTheme.spaceMd),
 
-                  // ══════════════════════════════════════════════════════
-                  // COMMENT — optional text feedback
-                  // ══════════════════════════════════════════════════════
                   TextField(
                     controller: _commentController,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -553,7 +484,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                     ),
                   ),
 
-                  // ── Guard message (duplicate warning) ────────────────
                   if (_guardMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppTheme.spaceSm),
@@ -579,7 +509,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
                       ),
                     ),
 
-                  // ── Submit Button ────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -638,10 +567,6 @@ class _RatingSheetContentState extends ConsumerState<_RatingSheetContent> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// _StudentSelectTile — selectable student row in the search results
-// ═══════════════════════════════════════════════════════════════════════════
-
 class _StudentSelectTile extends StatelessWidget {
   const _StudentSelectTile({required this.student, required this.onTap});
 
@@ -663,7 +588,7 @@ class _StudentSelectTile extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: Row(
           children: [
-            // Avatar circle
+
             Container(
               width: 36,
               height: 36,
@@ -683,7 +608,7 @@ class _StudentSelectTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Name + CGPA
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +630,7 @@ class _StudentSelectTile extends StatelessWidget {
                 ],
               ),
             ),
-            // Tap hint
+
             const Icon(
               Icons.chevron_right_rounded,
               color: Colors.white24,

@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Represents the current user's profile data.
 class UserProfile {
   final String userId;
   final String name;
@@ -72,7 +71,6 @@ class UserProfile {
     );
   }
 
-  /// CGPA normalised to 0–1 scale (PRD: cgpa / 10).
   double get normalizedCGPA => cgpa / 10;
 }
 
@@ -81,11 +79,6 @@ class UserNotifier extends StateNotifier<UserProfile> {
 
   StreamSubscription<DocumentSnapshot>? _sub;
 
-  /// Loads user profile from Firestore in real-time.
-  ///
-  /// [userId] — the uid from AuthService.
-  /// [displayName] — the display name from the auth provider, used
-  ///   as a fallback if the Firestore document doesn't have a name yet.
   Future<void> loadUser(String userId, {String displayName = ''}) async {
     state = state.copyWith(isLoading: true);
 
@@ -122,7 +115,7 @@ class UserNotifier extends StateNotifier<UserProfile> {
               skills: List<String>.from(data['skills'] ?? []),
             );
           } else {
-            // Fallback if doc is initializing
+
             final name = displayName.isNotEmpty
                 ? displayName
                       .split(RegExp(r'[._\-]'))
@@ -144,7 +137,6 @@ class UserNotifier extends StateNotifier<UserProfile> {
         });
   }
 
-  /// Updates the user profile in Firestore
   Future<void> updateProfile({
     String? bio,
     String? branch,
@@ -169,12 +161,11 @@ class UserNotifier extends StateNotifier<UserProfile> {
           .doc(state.userId)
           .update(updates);
     } catch (e) {
-      debugPrint('Error updating profile: $e');
+      debugPrint('profile edit fail: $e');
       rethrow;
     }
   }
 
-  /// Resets the user profile to defaults (used on sign-out).
   void reset() {
     _sub?.cancel();
     state = const UserProfile();
@@ -187,7 +178,6 @@ class UserNotifier extends StateNotifier<UserProfile> {
   }
 }
 
-/// Global provider for user profile.
 final userProvider = StateNotifierProvider<UserNotifier, UserProfile>(
   (ref) => UserNotifier(),
 );

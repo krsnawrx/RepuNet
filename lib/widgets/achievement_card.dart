@@ -8,19 +8,6 @@ import '../providers/post_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AchievementCard — Glassmorphic post card with credibility upvote
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Displays a single AchievementPost in the dark glassmorphic style:
-//   - Category icon + label badge
-//   - Author name + time ago
-//   - Title + description
-//   - Weighted score display + upvote toggle button
-//
-// The upvote button changes color when the current user has already voted.
-// ═══════════════════════════════════════════════════════════════════════════
-
 class AchievementCard extends ConsumerWidget {
   const AchievementCard({
     super.key,
@@ -45,10 +32,10 @@ class AchievementCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Row 1: Category badge + Timestamp ──────────────────────
+
           Row(
             children: [
-              // Category badge
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -91,7 +78,6 @@ class AchievementCard extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
 
-          // ── Row 2: Author avatar + name ────────────────────────────
           Row(
             children: [
               Container(
@@ -126,7 +112,6 @@ class AchievementCard extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
 
-          // ── Title ──────────────────────────────────────────────────
           Text(
             post.title,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -137,7 +122,6 @@ class AchievementCard extends ConsumerWidget {
             ),
           ),
 
-          // ── Description ────────────────────────────────────────────
           if (post.description.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -153,7 +137,6 @@ class AchievementCard extends ConsumerWidget {
           ],
           const SizedBox(height: 16),
 
-          // ── Row 3: Score display + Upvote button ───────────────────
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: 14,
@@ -168,7 +151,7 @@ class AchievementCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                // Weighted Score
+
                 Icon(
                   Icons.insights_rounded,
                   color: AppTheme.warning,
@@ -184,7 +167,7 @@ class AchievementCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Upvoter count
+
                 Text(
                   '${post.upvoters.length} vote${post.upvoters.length == 1 ? '' : 's'}',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -193,7 +176,7 @@ class AchievementCard extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
-                // Upvote Button
+
                 _UpvoteButton(
                   hasVoted: hasVoted,
                   isSelf: isSelf,
@@ -214,8 +197,6 @@ class AchievementCard extends ConsumerWidget {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-
   IconData _categoryIcon(PostCategory category) {
     switch (category) {
       case PostCategory.hackathon:
@@ -232,13 +213,13 @@ class AchievementCard extends ConsumerWidget {
   Color _categoryColor(PostCategory category) {
     switch (category) {
       case PostCategory.hackathon:
-        return const Color(0xFF3A86FF); // Vivid blue
+        return const Color(0xFF3A86FF);
       case PostCategory.project:
-        return const Color(0xFF06D6A0); // Teal green
+        return const Color(0xFF06D6A0);
       case PostCategory.research:
-        return const Color(0xFFFF6B6B); // Coral
+        return const Color(0xFFFF6B6B);
       case PostCategory.certification:
-        return const Color(0xFFFFC107); // Gold
+        return const Color(0xFFFFC107);
     }
   }
 
@@ -258,10 +239,6 @@ class AchievementCard extends ConsumerWidget {
     return '${months[date.month - 1]} ${date.day}';
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// _UpvoteButton — Animated upvote toggle
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _UpvoteButton extends StatelessWidget {
   const _UpvoteButton({

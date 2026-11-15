@@ -5,26 +5,9 @@ import '../models/interaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glassmorphic_card.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// InteractionFeed — Recent Ratings List
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Displays the last 5 ratings received by the current user.
-// Data comes from the ReputationNotifier which streams from the `ratings`
-// collection in Firestore (filtered by toUser == currentUserId).
-//
-// Each tile shows:
-//   • Rater's initials (avatar)
-//   • Rater's name
-//   • Relative timestamp
-//   • Star rating (1–5)
-//   • Comment (if provided)
-// ═══════════════════════════════════════════════════════════════════════════
-
 class InteractionFeed extends StatelessWidget {
   const InteractionFeed({super.key, required this.interactions});
 
-  /// The list of recent interactions to display (will show only last 5).
   final List<Interaction> interactions;
 
   @override
@@ -49,13 +32,12 @@ class InteractionFeed extends StatelessWidget {
       );
     }
 
-    // Show only the last 5 ratings
     final recentFive = interactions.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
+
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: AppTheme.spaceSm),
           child: Row(
@@ -86,7 +68,6 @@ class InteractionFeed extends StatelessWidget {
           ),
         ),
 
-        // Rater tiles
         ...recentFive.asMap().entries.map((entry) {
           final interaction = entry.value;
           final isLast = entry.key == recentFive.length - 1;
@@ -99,8 +80,6 @@ class InteractionFeed extends StatelessWidget {
     );
   }
 }
-
-// ── _RaterTile — individual rater row ───────────────────────────────────────
 
 class _RaterTile extends StatelessWidget {
   const _RaterTile({required this.interaction});
@@ -151,7 +130,7 @@ class _RaterTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  // ── Avatar ──────────────────────────────────────────────
+
                   Container(
                     width: 42,
                     height: 42,
@@ -175,7 +154,6 @@ class _RaterTile extends StatelessWidget {
                   ),
                   const SizedBox(width: AppTheme.spaceMd),
 
-                  // ── Name + timestamp ──────────────────────────────────
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +211,6 @@ class _RaterTile extends StatelessWidget {
                     ),
                   ),
 
-                  // ── Stars ─────────────────────────────────────────────
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(5, (i) {
@@ -251,7 +228,6 @@ class _RaterTile extends StatelessWidget {
                 ],
               ),
 
-              // ── Comment (if present) ──────────────────────────────────
               if (interaction.comment.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
